@@ -19,15 +19,13 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (!snapshot) {
-      setTree(null);
-      setArchives([]);
-      setArchive('');
-      return;
-    }
+    // Nothing to load without a snapshot; the archive picker + tree render only when one is selected.
+    if (!snapshot) return;
     setError('');
     setLoading(true);
     setTree(null);
+    setArchives([]);
+    setArchive('');
 
     Promise.all([api.files(snapshot), api.catalog(snapshot)])
       .then(([files, catalog]) => {
@@ -64,28 +62,30 @@ export default function App() {
           </select>
         </label>
 
-        <label>
-          Archive
-          <select
-            value={archive}
-            onChange={(e) => setArchive(e.target.value)}
-            disabled={archives.length === 0}
-          >
-            {archives.map((a) => {
-              const name = restoreArchiveName(a.filename);
-              return (
-                <option key={name} value={name}>
-                  {name}
-                </option>
-              );
-            })}
-          </select>
-        </label>
+        {snapshot && (
+          <label>
+            Archive
+            <select
+              value={archive}
+              onChange={(e) => setArchive(e.target.value)}
+              disabled={archives.length === 0}
+            >
+              {archives.map((a) => {
+                const name = restoreArchiveName(a.filename);
+                return (
+                  <option key={name} value={name}>
+                    {name}
+                  </option>
+                );
+              })}
+            </select>
+          </label>
+        )}
       </section>
 
       {error && <p className="error">{error}</p>}
       {loading && <p className="muted">Loading catalog…</p>}
-      {tree && !loading && <Tree root={tree} snapshot={snapshot} archive={archive} />}
+      {snapshot && tree && !loading && <Tree root={tree} snapshot={snapshot} archive={archive} />}
     </div>
   );
 }
