@@ -5,7 +5,11 @@ name: "Automatically update dotnet lockfiles in dependabot PRs"
 # Requires repo secret WORKFLOW_TOKEN (PAT that can push to the PR branch and re-trigger CI).
 
 on:
-  pull_request_target:
+  # pull_request_target is required so the reusable workflow can push the regenerated lockfile back
+  # to the Dependabot PR branch (Dependabot PRs run with a read-only token). It delegates entirely to
+  # a pinned, trusted reusable workflow and never checks out or runs PR-authored code, so the usual
+  # pull_request_target exploit surface does not apply here.
+  pull_request_target: # zizmor: ignore[dangerous-triggers]
     types:
       - labeled
       - synchronize

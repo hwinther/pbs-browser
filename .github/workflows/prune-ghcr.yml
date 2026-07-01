@@ -47,4 +47,6 @@ jobs:
       images: ${{ inputs.images || 'pbs-browser/app' }}
       package_namespace_prefix: pbs-browser/
       nuke_package: ${{ inputs.nuke_package || '' }}
+    # Passes the optional GHCR_PRUNE_TOKEN through to the pinned reusable prune workflow (which reads
+    # it via inherit). Accepted + documented in .github/zizmor.yml (secrets-inherit).
     secrets: inherit
