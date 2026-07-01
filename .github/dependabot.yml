@@ -1,0 +1,84 @@
+# Dependabot version updates. https://docs.github.com/code-security/dependabot
+version: 2
+updates:
+- package-ecosystem: "github-actions"
+  directories:
+  - "/"
+  open-pull-requests-limit: 20
+  target-branch: "main"
+  schedule:
+    interval: "weekly"
+    day: "sunday"
+  assignees:
+  - "hwinther"
+  groups:
+    reusable-workflows:
+      patterns:
+      - "hwinther/reusable-workflows/*"
+
+- package-ecosystem: "docker"
+  directories:
+  - "/"
+  open-pull-requests-limit: 20
+  target-branch: "main"
+  schedule:
+    interval: "weekly"
+    day: "sunday"
+  assignees:
+  - "hwinther"
+
+- package-ecosystem: "nuget"
+  directory: "/backend"
+  open-pull-requests-limit: 20
+  target-branch: "main"
+  schedule:
+    interval: "weekly"
+    day: "sunday"
+  assignees:
+  - "hwinther"
+  groups:
+    microsoft:
+      patterns:
+      - "Microsoft.*"
+    xunit:
+      patterns:
+      - "xunit"
+      - "xunit.*"
+
+- package-ecosystem: "npm"
+  directories:
+  - "/frontend"
+  open-pull-requests-limit: 20
+  target-branch: "main"
+  schedule:
+    interval: "weekly"
+    day: "sunday"
+  assignees:
+  - "hwinther"
+  ignore:
+  - dependency-name: "*"
+    update-types: [ "version-update:semver-patch" ]
+  groups:
+    types:
+      patterns:
+      - "@types/*"
+    react:
+      patterns:
+      - "react"
+      - "react-*"
+      - "@types/react*"
+    testing:
+      patterns:
+      - "@testing-library/*"
+      - "jsdom"
+    vite:
+      patterns:
+      - "vite"
+      - "vite-*"
+      - "@vitejs/*"
+      - "vitest"
+      - "@vitest/*"
+    build-tools:
+      patterns:
+      - "typescript"
+      - "typescript-*"
