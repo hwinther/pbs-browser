@@ -25,5 +25,8 @@ public sealed class CatalogNode
 /// <summary>A restored file ready to stream. Disposing <see cref="Stream"/> cleans the scratch dir.</summary>
 public sealed record RestoreResult(Stream Stream, long Length, string FileName);
 
+/// <summary>Raw result of a client invocation — used by the diagnostic endpoint.</summary>
+public sealed record CommandResult(int ExitCode, string StdOut, string StdErr);
+
 /// <summary>Raised when the <c>proxmox-backup-client</c> process exits non-zero.</summary>
 public sealed class PbsException(string message) : Exception(message);

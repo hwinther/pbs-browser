@@ -69,6 +69,15 @@ public sealed class PbsClient(PbsOptions options, ILogger<PbsClient> logger) : I
         }
     }
 
+    public async Task<CommandResult> DumpCatalogRawAsync(string snapshot, CancellationToken ct)
+    {
+        var args = new List<string> { "catalog", "dump", snapshot };
+        AddKeyfile(args);
+        AddNamespace(args);
+        var (exit, stdout, stderr) = await RunAsync(args, ct);
+        return new CommandResult(exit, stdout, stderr);
+    }
+
     private void AddKeyfile(List<string> args)
     {
         if (options.HasKeyfile)

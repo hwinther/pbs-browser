@@ -87,6 +87,19 @@ api.MapGet("/download", async (string snapshot, string archive, string path,
     return Results.File(result.Stream, "application/octet-stream", result.FileName);
 });
 
+// Diagnostic: raw `catalog dump` exit/stdout/stderr, to inspect what the client actually returns
+// (e.g. when a snapshot's tree comes back empty). Enabled only with PBS_DEBUG set.
+if (app.Configuration["PBS_DEBUG"] is "1" or "true" or "True")
+{
+    api.MapGet("/debug/catalog", async (string snapshot, IPbsClient pbs, CancellationToken ct) =>
+    {
+        if (!PbsInputValidation.IsValidSnapshot(snapshot))
+            return Results.BadRequest(new { error = "invalid snapshot" });
+        var r = await pbs.DumpCatalogRawAsync(snapshot, ct);
+        return Results.Ok(new { exitCode = r.ExitCode, stdout = r.StdOut, stderr = r.StdErr });
+    });
+}
+
 app.MapGet("/healthz", () => Results.Text("ok"));
 
 // SPA fallback — any non-API route serves the app shell.

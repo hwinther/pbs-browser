@@ -58,3 +58,20 @@ export function buildDownloadUrl(snapshot: string, archive: string, path: string
   const query = new URLSearchParams({ snapshot, archive, path });
   return `/api/download?${query.toString()}`;
 }
+
+/** Groups snapshots by host (`type/id`), each group's snapshots newest-first, groups sorted by name. */
+export function groupSnapshotsByHost(snapshots: SnapshotInfo[]): [string, SnapshotInfo[]][] {
+  const byHost = new Map<string, SnapshotInfo[]>();
+  for (const s of snapshots) {
+    const host = `${s.backupType}/${s.backupId}`;
+    const group = byHost.get(host);
+    if (group) group.push(s);
+    else byHost.set(host, [s]);
+  }
+  return [...byHost.entries()]
+    .map(([host, snaps]): [string, SnapshotInfo[]] => [
+      host,
+      [...snaps].sort((a, b) => b.time.localeCompare(a.time)),
+    ])
+    .sort((a, b) => a[0].localeCompare(b[0]));
+}
