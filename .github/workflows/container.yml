@@ -1,0 +1,39 @@
+name: "Publish container to GHCR"
+
+# Single combined image (SPA + API + proxmox-backup-client). Built from the repo-root Dockerfile.
+# linux/amd64 only — the reusable workflow builds for the runner arch (amd64) by default, which is
+# required because proxmox-backup-client-static has no arm64 build.
+
+on:
+  workflow_dispatch:
+    inputs:
+      grype_fail_build:
+        description: "Fail the build if Grype finds vulnerabilities"
+        type: boolean
+        default: true
+  push:
+    tags:
+      - "v*"
+
+concurrency:
+  group: "${{ github.workflow }} @ ${{ github.event.pull_request.head.label || github.head_ref || github.ref }}"
+  cancel-in-progress: true
+
+jobs:
+  container:
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v'))
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+      attestations: write
+      actions: write
+      security-events: write
+      pull-requests: write
+    uses: hwinther/reusable-workflows/.github/workflows/docker-container.yml@f65228ea4276b3ff26409146ccd1191c728c811a # v1.65.0
+    with:
+      container_registry: ghcr.io
+      container_image_name_postfix: app
+      build_context: .
+      dockerfile: Dockerfile
+      grype_fail_build: ${{ github.event_name != 'workflow_dispatch' || fromJSON(github.event.inputs.grype_fail_build || 'true') }}

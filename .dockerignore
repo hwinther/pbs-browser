@@ -1,0 +1,18 @@
+# Build outputs and deps — rebuilt inside the image
+**/bin
+**/obj
+**/node_modules
+**/dist
+backend/src/Api/wwwroot
+backend/artifacts
+backend/TestResults
+
+# VCS / editor / CI
+.git
+.github
+.vs
+.idea
+.vscode
+
+# Docs / misc not needed in the build context
+*.md

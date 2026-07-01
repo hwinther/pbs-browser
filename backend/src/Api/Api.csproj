@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <RootNamespace>PbsBrowser.Api</RootNamespace>
+    <AssemblyName>PbsBrowser.Api</AssemblyName>
+    <!-- The SPA is copied into wwwroot at image build; keep an empty dir tracked in dev. -->
+    <SpaRoot>wwwroot\</SpaRoot>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="PbsBrowser.Api.Tests" />
+  </ItemGroup>
+
+</Project>

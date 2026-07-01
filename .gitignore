@@ -1,0 +1,33 @@
+# .NET
+bin/
+obj/
+artifacts/
+*.user
+TestResults/
+[Tt]est[Rr]esults/
+coverage*.json
+coverage*.xml
+*.trx
+
+# Node
+node_modules/
+dist/
+.vite/
+*.log
+npm-debug.log*
+
+# Build output served by the API
+backend/src/Api/wwwroot/
+
+# Editors / OS
+.vs/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Local env / secrets (never commit real PBS creds or keyfiles)
+.env
+.env.*
+!.env.sample
+*.keyfile
+keyfile.json
