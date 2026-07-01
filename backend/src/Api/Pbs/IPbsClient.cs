@@ -12,4 +12,8 @@ public interface IPbsClient
     /// <summary>Restores a single file to a scratch dir and returns a stream over it, or null if the
     /// path was not present in the archive. The returned stream cleans the scratch dir on dispose.</summary>
     Task<RestoreResult?> RestoreFileAsync(string snapshot, string archive, string innerPath, CancellationToken ct);
+
+    /// <summary>Runs <c>catalog dump</c> and returns the raw exit/stdout/stderr — for the diagnostic
+    /// endpoint, so the actual client output can be inspected without parsing.</summary>
+    Task<CommandResult> DumpCatalogRawAsync(string snapshot, CancellationToken ct);
 }

@@ -1,5 +1,11 @@
 import { describe, expect, test } from 'vitest';
-import { buildDownloadUrl, isRestorableArchive, restoreArchiveName } from './api';
+import type { SnapshotInfo } from './api';
+import {
+  buildDownloadUrl,
+  groupSnapshotsByHost,
+  isRestorableArchive,
+  restoreArchiveName,
+} from './api';
 
 describe('archive helpers', () => {
   test('restoreArchiveName strips index suffixes', () => {
@@ -22,5 +28,32 @@ describe('buildDownloadUrl', () => {
     expect(url).toContain('snapshot=host%2Fdemo');
     expect(url).toContain('archive=root.pxar');
     expect(url).toContain('path=%2Fetc%2Fhosts');
+  });
+});
+
+describe('groupSnapshotsByHost', () => {
+  const snap = (backupId: string, time: string): SnapshotInfo => ({
+    id: `host/${backupId}/${time}`,
+    backupType: 'host',
+    backupId,
+    time,
+    size: null,
+    comment: null,
+  });
+
+  test('groups by type/id and sorts snapshots newest-first', () => {
+    const groups = groupSnapshotsByHost([
+      snap('grafana', '2026-06-29T00:00:00Z'),
+      snap('node-red', '2026-06-30T00:00:00Z'),
+      snap('grafana', '2026-07-01T00:00:00Z'),
+    ]);
+
+    // groups sorted by host name
+    expect(groups.map(([h]) => h)).toEqual(['host/grafana', 'host/node-red']);
+    // grafana's two snapshots, newest first
+    expect(groups[0][1].map((s) => s.time)).toEqual([
+      '2026-07-01T00:00:00Z',
+      '2026-06-29T00:00:00Z',
+    ]);
   });
 });

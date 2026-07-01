@@ -114,5 +114,8 @@ public class ApiSmokeTests : IClassFixture<WebApplicationFactory<Program>>
             var bytes = Encoding.UTF8.GetBytes("127.0.0.1 localhost");
             return Task.FromResult<RestoreResult?>(new RestoreResult(new MemoryStream(bytes), bytes.Length, "hosts"));
         }
+
+        public Task<CommandResult> DumpCatalogRawAsync(string snapshot, CancellationToken ct) =>
+            Task.FromResult(new CommandResult(0, "d \"./root.pxar.didx/etc\"", string.Empty));
     }
 }

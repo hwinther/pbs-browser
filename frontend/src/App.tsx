@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { api, isRestorableArchive, restoreArchiveName } from './api';
+import { api, groupSnapshotsByHost, isRestorableArchive, restoreArchiveName } from './api';
 import type { ArchiveInfo, CatalogNode, Identity, SnapshotInfo } from './api';
 import { Tree } from './Tree';
 
@@ -52,10 +52,14 @@ export default function App() {
           Snapshot
           <select value={snapshot} onChange={(e) => setSnapshot(e.target.value)}>
             <option value="">— select a snapshot —</option>
-            {snapshots.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.backupType}/{s.backupId} · {new Date(s.time).toLocaleString()}
-              </option>
+            {groupSnapshotsByHost(snapshots).map(([host, snaps]) => (
+              <optgroup key={host} label={host}>
+                {snaps.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {new Date(s.time).toLocaleString()}
+                  </option>
+                ))}
+              </optgroup>
             ))}
           </select>
         </label>

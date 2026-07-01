@@ -12,13 +12,12 @@ public sealed class FakePbsClient : IPbsClient
 {
     private const string SampleCatalogDump =
         """
-        d---         /
-        d---         /etc
-        f--- 158     /etc/hosts
-        d---         /etc/grafana
-        f--- 4096    /etc/grafana/grafana.ini
-        d---         /var
-        f--- 1048576 /var/lib/grafana/grafana.db
+        d "./config.pxar.didx"
+        f "./config.pxar.didx/adminlist.txt" 57 2026-06-27T16:54:16Z
+        f "./config.pxar.didx/prefs" 332 2026-07-01T03:00:08Z
+        d "./config.pxar.didx/worlds_local"
+        f "./config.pxar.didx/worlds_local/Geirangerheim.db" 8439727 2026-07-01T04:00:22Z
+        f "./config.pxar.didx/worlds_local/Geirangerheim.fwl" 2410 2026-07-01T04:00:22Z
         """;
 
     public Task<IReadOnlyList<SnapshotInfo>> ListSnapshotsAsync(CancellationToken ct) =>
@@ -35,9 +34,9 @@ public sealed class FakePbsClient : IPbsClient
     public Task<IReadOnlyList<ArchiveInfo>> ListArchivesAsync(string snapshot, CancellationToken ct) =>
         Task.FromResult<IReadOnlyList<ArchiveInfo>>(
         [
-            new ArchiveInfo("root.pxar.didx", 1_150_000, "encrypt"),
-            new ArchiveInfo("catalog.pcat1.didx", 20_000, "encrypt"),
-            new ArchiveInfo("index.json.blob", 512, "encrypt"),
+            new ArchiveInfo("catalog.pcat1.didx", 718, "encrypt"),
+            new ArchiveInfo("config.pxar.didx", 50_588_152, "encrypt"),
+            new ArchiveInfo("index.json.blob", 495, "sign-only"),
         ]);
 
     public Task<CatalogNode> GetCatalogAsync(string snapshot, CancellationToken ct) =>
@@ -50,4 +49,7 @@ public sealed class FakePbsClient : IPbsClient
         var fileName = Path.GetFileName(innerPath.TrimEnd('/'));
         return Task.FromResult<RestoreResult?>(new RestoreResult(new MemoryStream(bytes), bytes.Length, fileName));
     }
+
+    public Task<CommandResult> DumpCatalogRawAsync(string snapshot, CancellationToken ct) =>
+        Task.FromResult(new CommandResult(0, SampleCatalogDump, string.Empty));
 }
