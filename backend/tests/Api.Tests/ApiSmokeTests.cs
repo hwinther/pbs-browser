@@ -24,20 +24,22 @@ public class ApiSmokeTests : IClassFixture<WebApplicationFactory<Program>>
             }));
     }
 
+    private static CancellationToken Ct => TestContext.Current.CancellationToken;
+
     [Fact]
     public async Task Healthz_returns_ok()
     {
         var client = _factory.CreateClient();
-        var resp = await client.GetAsync("/healthz");
+        var resp = await client.GetAsync("/healthz", Ct);
         resp.EnsureSuccessStatusCode();
-        Assert.Equal("ok", await resp.Content.ReadAsStringAsync());
+        Assert.Equal("ok", await resp.Content.ReadAsStringAsync(Ct));
     }
 
     [Fact]
     public async Task Snapshots_returns_fake_list()
     {
         var client = _factory.CreateClient();
-        var body = await client.GetStringAsync("/api/snapshots");
+        var body = await client.GetStringAsync("/api/snapshots", Ct);
         Assert.Contains("host/demo/2026-06-30T00:00:00Z", body);
     }
 
@@ -45,7 +47,7 @@ public class ApiSmokeTests : IClassFixture<WebApplicationFactory<Program>>
     public async Task Catalog_rejects_malformed_snapshot()
     {
         var client = _factory.CreateClient();
-        var resp = await client.GetAsync("/api/catalog?snapshot=not-a-snapshot");
+        var resp = await client.GetAsync("/api/catalog?snapshot=not-a-snapshot", Ct);
         Assert.Equal(HttpStatusCode.BadRequest, resp.StatusCode);
     }
 
@@ -53,7 +55,7 @@ public class ApiSmokeTests : IClassFixture<WebApplicationFactory<Program>>
     public async Task Catalog_accepts_valid_snapshot()
     {
         var client = _factory.CreateClient();
-        var resp = await client.GetAsync("/api/catalog?snapshot=host/demo/2026-06-30T00:00:00Z");
+        var resp = await client.GetAsync("/api/catalog?snapshot=host/demo/2026-06-30T00:00:00Z", Ct);
         resp.EnsureSuccessStatusCode();
     }
 
@@ -62,7 +64,7 @@ public class ApiSmokeTests : IClassFixture<WebApplicationFactory<Program>>
     {
         var client = _factory.CreateClient();
         var resp = await client.GetAsync(
-            "/api/download?snapshot=host/demo/2026-06-30T00:00:00Z&archive=root.pxar&path=/etc/../../shadow");
+            "/api/download?snapshot=host/demo/2026-06-30T00:00:00Z&archive=root.pxar&path=/etc/../../shadow", Ct);
         Assert.Equal(HttpStatusCode.BadRequest, resp.StatusCode);
     }
 
@@ -71,9 +73,9 @@ public class ApiSmokeTests : IClassFixture<WebApplicationFactory<Program>>
     {
         var client = _factory.CreateClient();
         var resp = await client.GetAsync(
-            "/api/download?snapshot=host/demo/2026-06-30T00:00:00Z&archive=root.pxar&path=/etc/hosts");
+            "/api/download?snapshot=host/demo/2026-06-30T00:00:00Z&archive=root.pxar&path=/etc/hosts", Ct);
         resp.EnsureSuccessStatusCode();
-        Assert.Equal("127.0.0.1 localhost", await resp.Content.ReadAsStringAsync());
+        Assert.Equal("127.0.0.1 localhost", await resp.Content.ReadAsStringAsync(Ct));
     }
 
     [Fact]
@@ -83,9 +85,9 @@ public class ApiSmokeTests : IClassFixture<WebApplicationFactory<Program>>
         var req = new HttpRequestMessage(HttpMethod.Get, "/api/me");
         req.Headers.Add("Remote-User", "hcw");
         req.Headers.Add("Remote-Email", "hcw@wsh.no");
-        var resp = await client.SendAsync(req);
+        var resp = await client.SendAsync(req, Ct);
 
-        var json = await resp.Content.ReadFromJsonAsync<MeResponse>();
+        var json = await resp.Content.ReadFromJsonAsync<MeResponse>(Ct);
         Assert.Equal("hcw", json!.User);
         Assert.Equal("hcw@wsh.no", json.Email);
     }
