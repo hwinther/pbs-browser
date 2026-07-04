@@ -19,5 +19,17 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     setupFiles: ['./src/test/setup.ts'],
+    // Emit coverage/cobertura-coverage.xml so the reusable pr-build.yml node job
+    // (irongut/CodeCoverageSummary) always finds it. coverage:ci passes --coverage.
+    coverage: {
+      reporter: ['cobertura', 'lcov', 'html', 'json'],
+    },
+    // Emit coverage/junit-report.xml so the reusable pr-build.yml node job
+    // (dorny/test-reporter, jest-junit parser) always finds the report.
+    reporters: ['verbose', 'github-actions', 'junit', 'json'],
+    outputFile: {
+      junit: './coverage/junit-report.xml',
+      json: './coverage/json-report.json',
+    },
   },
 });

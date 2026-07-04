@@ -12,7 +12,9 @@
     "lint:fix": "eslint . --fix",
     "lint:ci": "eslint . --report-unused-disable-directives --format json",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "coverage": "vitest --coverage",
+    "coverage:ci": "vitest run --coverage"
   },
   "dependencies": {
     "react": "19.1.0",
@@ -25,6 +27,7 @@
     "@types/react": "19.1.0",
     "@types/react-dom": "19.1.0",
     "@vitejs/plugin-react": "4.3.4",
+    "@vitest/coverage-v8": "^2.1.8",
     "eslint": "9.39.3",
     "eslint-plugin-react": "7.37.5",
     "eslint-plugin-react-hooks": "7.1.1",
