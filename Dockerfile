@@ -5,7 +5,7 @@
 # only (see images/proxmox-pbs-backup-client in the infra repo for the same install pattern).
 
 # 1) Build the SPA -> /src/frontend/dist
-FROM node:24-bookworm-slim AS frontend
+FROM node:25-bookworm-slim AS frontend
 WORKDIR /src/frontend
 COPY frontend/package.json frontend/package-lock.json* ./
 RUN npm ci
