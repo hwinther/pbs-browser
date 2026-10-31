@@ -1,0 +1,29 @@
+# Authelia forward-auth is part of the workload, not a cluster choice: the app has no auth code and
+# trusts the Remote-User / Remote-Email headers it injects (CLAUDE.md), so it must never be exposed
+# without it. The app reads those headers only for its restore audit log.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: pbs-browser
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: web,websecure
+    traefik.ingress.kubernetes.io/router.middlewares: authelia-production-authelia-forwardauth@kubernetescrd
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/group: Platform
+    gethomepage.dev/name: PBS Browser
+    gethomepage.dev/href: "https://${APP_HOST}/"
+    gethomepage.dev/siteMonitor: "https://${APP_HOST}"
+    gethomepage.dev/icon: mdi-folder-search
+    gethomepage.dev/description: Browse & restore files from encrypted PBS backups
+spec:
+  rules:
+  - host: ${APP_HOST}
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: pbs-browser
+            port:
+              number: 8080

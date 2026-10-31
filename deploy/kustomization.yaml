@@ -1,0 +1,16 @@
+# Workload manifests for pbs-browser, shipped as a signed OCI artifact
+# (ghcr.io/hwinther/pbs-browser/manifests:<version>) by the `manifests` job in container.yml.
+# The cluster side (namespace, network policies, the pbs-browser-pbs Secret, the keyfile clone,
+# the value for ${APP_HOST}) lives in hwinther/proxmox. See README.md for the contract.
+#
+# Never commit rendered output. CI pins the image to tag@digest at release time; the tag here is
+# only a placeholder so `kubectl kustomize deploy` renders locally.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- deployment.yaml
+- service.yaml
+- ingress.yaml
+images:
+- name: ghcr.io/hwinther/pbs-browser/app
+  newTag: 0.0.0-dev
