@@ -91,3 +91,9 @@ updates:
       patterns:
       - "typescript"
       - "typescript-*"
+    # The shared configs peer on eslint and prettier, so they move together.
+    wshno:
+      patterns:
+      - "@wshno/*"
+      - "eslint"
+      - "prettier"
