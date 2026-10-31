@@ -30,7 +30,8 @@ async function getJson<T>(url: string): Promise<T> {
   const resp = await fetch(url);
   if (!resp.ok) {
     const text = await resp.text().catch(() => '');
-    throw new Error(`${resp.status} ${resp.statusText}${text ? `: ${text}` : ''}`);
+    const detail = text ? `: ${text}` : '';
+    throw new Error(`${resp.status} ${resp.statusText}${detail}`);
   }
   return (await resp.json()) as T;
 }

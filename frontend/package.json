@@ -14,29 +14,30 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "coverage": "vitest --coverage",
-    "coverage:ci": "vitest run --coverage"
+    "coverage:ci": "vitest run --coverage",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
   "dependencies": {
     "react": "19.1.0",
     "react-dom": "19.1.0"
   },
   "devDependencies": {
-    "@eslint/js": "9.39.3",
     "@testing-library/jest-dom": "6.6.3",
     "@testing-library/react": "16.1.0",
     "@types/react": "19.1.0",
     "@types/react-dom": "19.1.0",
     "@vitejs/plugin-react": "4.3.4",
-    "@vitest/coverage-v8": "^2.1.8",
-    "eslint": "9.39.3",
-    "eslint-plugin-react": "7.37.5",
-    "eslint-plugin-react-hooks": "7.1.1",
-    "eslint-plugin-react-refresh": "0.5.2",
-    "globals": "17.7.0",
+    "@vitest/coverage-v8": "2.1.8",
+    "@wshno/eslint-config": "0.2.0",
+    "@wshno/prettier-config": "0.1.1",
+    "@wshno/tsconfig": "0.1.1",
+    "eslint": "10.13.0",
     "jsdom": "25.0.1",
-    "typescript": "5.7.2",
-    "typescript-eslint": "8.57.0",
+    "prettier": "3.9.10",
+    "typescript": "6.0.3",
     "vite": "6.3.5",
     "vitest": "2.1.8"
-  }
+  },
+  "prettier": "@wshno/prettier-config"
 }

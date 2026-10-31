@@ -31,7 +31,8 @@ export default function App() {
       .then(([files, catalog]) => {
         const restorable = files.filter((f) => isRestorableArchive(f.filename));
         setArchives(restorable);
-        setArchive(restorable.length ? restoreArchiveName(restorable[0].filename) : '');
+        const first = restorable[0];
+        setArchive(first ? restoreArchiveName(first.filename) : '');
         setTree(catalog);
       })
       .catch((e: unknown) => setError(String(e)))

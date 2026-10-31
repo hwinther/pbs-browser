@@ -51,7 +51,7 @@ describe('groupSnapshotsByHost', () => {
     // groups sorted by host name
     expect(groups.map(([h]) => h)).toEqual(['host/grafana', 'host/node-red']);
     // grafana's two snapshots, newest first
-    expect(groups[0][1].map((s) => s.time)).toEqual([
+    expect(groups[0]?.[1].map((s) => s.time)).toEqual([
       '2026-07-01T00:00:00Z',
       '2026-06-29T00:00:00Z',
     ]);

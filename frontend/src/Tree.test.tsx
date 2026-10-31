@@ -30,8 +30,8 @@ test('expands a directory and exposes a download link for the file', () => {
 
   expect(screen.getByText('hosts')).toBeInTheDocument();
   const link = screen.getByRole('link', { name: 'Download' });
-  expect(link.getAttribute('href')).toContain('path=%2Fetc%2Fhosts');
-  expect(link.getAttribute('href')).toContain('archive=root.pxar');
+  expect(link).toHaveAttribute('href', expect.stringContaining('path=%2Fetc%2Fhosts'));
+  expect(link).toHaveAttribute('href', expect.stringContaining('archive=root.pxar'));
 });
 
 test('renders a disabled download when no archive is selected', () => {
