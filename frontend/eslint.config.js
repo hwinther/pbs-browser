@@ -1,4 +1,4 @@
-import { base, ignores, react, testingLibrary, vitest } from "@wshno/eslint-config";
+import { base, ignores, react, testingLibrary, vitest } from '@wshno/eslint-config'
 
 // @wshno/eslint-config: JS/TS and SonarJS recommended, @eslint-react (incl. the hooks rules) with
 // React Refresh, and the Vitest + Testing Library rules for the unit tests.
@@ -16,4 +16,4 @@ export default [
       '@eslint-react/set-state-in-effect': 'off',
     },
   },
-];
+]

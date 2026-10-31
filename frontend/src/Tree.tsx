@@ -1,28 +1,28 @@
-import { useState } from 'react';
-import type { CatalogNode } from './api';
-import { buildDownloadUrl } from './api';
+import { useState } from 'react'
+import type { CatalogNode } from './api'
+import { buildDownloadUrl } from './api'
 
 function formatSize(size: number | null): string {
-  if (size == null) return '';
-  const units = ['B', 'KB', 'MB', 'GB', 'TB'];
-  let n = size;
-  let i = 0;
+  if (size == null) return ''
+  const units = ['B', 'KB', 'MB', 'GB', 'TB']
+  let n = size
+  let i = 0
   while (n >= 1024 && i < units.length - 1) {
-    n /= 1024;
-    i += 1;
+    n /= 1024
+    i += 1
   }
-  return `${n.toFixed(i === 0 ? 0 : 1)} ${units[i]}`;
+  return `${n.toFixed(i === 0 ? 0 : 1)} ${units[i]}`
 }
 
 interface TreeProps {
-  root: CatalogNode;
-  snapshot: string;
-  archive: string;
+  root: CatalogNode
+  snapshot: string
+  archive: string
 }
 
 export function Tree({ root, snapshot, archive }: TreeProps) {
   if (!root.children?.length) {
-    return <p className="muted">No files in this snapshot.</p>;
+    return <p className="muted">No files in this snapshot.</p>
   }
   return (
     <ul className="tree">
@@ -30,18 +30,20 @@ export function Tree({ root, snapshot, archive }: TreeProps) {
         <TreeItem key={child.path} node={child} snapshot={snapshot} archive={archive} />
       ))}
     </ul>
-  );
+  )
 }
 
 function TreeItem({ node, snapshot, archive }: { node: CatalogNode; snapshot: string; archive: string }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(false)
 
   if (node.isDir) {
     return (
       <li>
         <button type="button" className="row dir" onClick={() => setOpen(!open)} aria-expanded={open}>
           <span className="caret">{open ? '▾' : '▸'}</span>
-          <span className="icon" aria-hidden="true">📁</span>
+          <span className="icon" aria-hidden="true">
+            📁
+          </span>
           <span className="name">{node.name}</span>
         </button>
         {open && node.children?.length > 0 && (
@@ -52,14 +54,16 @@ function TreeItem({ node, snapshot, archive }: { node: CatalogNode; snapshot: st
           </ul>
         )}
       </li>
-    );
+    )
   }
 
   return (
     <li>
       <div className="row file">
         <span className="caret" />
-        <span className="icon" aria-hidden="true">📄</span>
+        <span className="icon" aria-hidden="true">
+          📄
+        </span>
         <span className="name">{node.name}</span>
         <span className="size">{formatSize(node.size)}</span>
         {archive ? (
@@ -67,9 +71,11 @@ function TreeItem({ node, snapshot, archive }: { node: CatalogNode; snapshot: st
             Download
           </a>
         ) : (
-          <span className="download disabled" title="Select an archive first">Download</span>
+          <span className="download disabled" title="Select an archive first">
+            Download
+          </span>
         )}
       </div>
     </li>
-  );
+  )
 }
