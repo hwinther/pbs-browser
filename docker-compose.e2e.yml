@@ -1,0 +1,36 @@
+# E2E compose stack for pr-e2e.yml (and local Playwright runs against a built image).
+#
+# The combined pbs-browser image (SPA + API + proxmox-backup-client) in FAKE mode: the in-memory
+# FakePbsClient serves sample snapshots, a catalog and restores, so Playwright drives the real SPA
+# against the real API with NO PBS, NO keyfile and NO secrets. The deployed preview diverges on
+# purpose: it runs the real client against PBS behind Authelia.
+#
+# The image ref comes from APP_IMAGE, so the same file works for any digest:
+#   APP_IMAGE=ghcr.io/hwinther/pbs-browser/app@sha256:...
+# pr-e2e.yml sets it to the build hand-off. For a local run:
+#   docker build --platform linux/amd64 -t pbs-browser:dev .
+#   APP_IMAGE=pbs-browser:dev docker compose -f docker-compose.e2e.yml up -d --wait
+
+services:
+  app:
+    image: ${APP_IMAGE:?set APP_IMAGE to the pbs-browser image ref, e.g. ghcr.io/hwinther/pbs-browser/app@sha256:...}
+    environment:
+      PBS_FAKE: "1"
+    ports:
+      - "8080:8080"
+
+  # Readiness gate. The aspnet base image ships no curl/wget, so `app` carries no healthcheck of its
+  # own. `docker compose up --wait` blocks until this sidecar's /healthz probe reports healthy. (A
+  # run-to-completion sidecar does NOT gate --wait; only a long-running service with a healthcheck does.)
+  app-ready:
+    image: curlimages/curl:8.10.1
+    depends_on:
+      app:
+        condition: service_started
+    entrypoint: ["sh", "-c", "sleep 3600"]
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://app:8080/healthz"]
+      interval: 3s
+      timeout: 3s
+      retries: 40
+      start_period: 3s
