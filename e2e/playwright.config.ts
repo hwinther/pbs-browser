@@ -5,14 +5,14 @@
  *
  * The specs assert on FakePbsClient's sample data (backend/src/Api/Pbs/FakePbsClient.cs).
  */
-import { devices } from "@playwright/test";
-import { definePlaywrightConfig } from "@wshno/playwright-config";
+import { devices } from '@playwright/test'
+import { definePlaywrightConfig } from '@wshno/playwright-config'
 
 // Shared defaults (testDir ./tests, forbidOnly, retries, the github/html/json CI reporters at the
 // paths the reusable reads, trace, screenshot and video on failure) come from @wshno/playwright-config.
 export default definePlaywrightConfig({
   use: {
-    baseURL: process.env.BASE_URL ?? "http://localhost:8080",
+    baseURL: process.env.BASE_URL ?? 'http://localhost:8080',
   },
-  projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
-});
+  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
+})
