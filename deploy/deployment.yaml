@@ -1,0 +1,82 @@
+# pbs-browser: web UI to browse and restore files from client-side-encrypted PBS snapshots.
+# Needs, in the target namespace (provided by the cluster repo):
+#   - Secret `pbs-browser-pbs` (PBS_REPOSITORY / PBS_PASSWORD / PBS_ENCRYPTION_PASSWORD / ...);
+#   - Secret `pbs-encryption-keyfile`, which Kyverno clones into namespaces labelled
+#     pbs.wsh.no/encryption-keyfile=true. Optional: without it the app runs without --keyfile.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pbs-browser
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: pbs-browser
+  template:
+    metadata:
+      labels:
+        app: pbs-browser
+        app.kubernetes.io/name: pbs-browser
+    spec:
+      automountServiceAccountToken: false
+      # proxmox-backup-client-static is amd64-only.
+      nodeSelector:
+        kubernetes.io/arch: amd64
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1654 # matches the dotnet aspnet image's `app` user ($APP_UID)
+        fsGroup: 1654 # so the cloned keyfile Secret is group-readable
+        fsGroupChangePolicy: OnRootMismatch
+      containers:
+      - name: pbs-browser
+        image: ghcr.io/hwinther/pbs-browser/app
+        imagePullPolicy: IfNotPresent
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+        resources:
+          requests:
+            cpu: 50m
+            memory: 128Mi
+          limits:
+            cpu: "1"
+            memory: 512Mi
+        envFrom:
+        # PBS_REPOSITORY / PBS_PASSWORD / PBS_ENCRYPTION_PASSWORD / PBS_FINGERPRINT / PBS_NAMESPACE
+        - secretRef:
+            name: pbs-browser-pbs
+        ports:
+        - name: http
+          containerPort: 8080
+          protocol: TCP
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: http
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: http
+          initialDelaySeconds: 15
+          periodSeconds: 30
+          timeoutSeconds: 5
+          failureThreshold: 6
+        volumeMounts:
+        - name: pbs-keyfile
+          mountPath: /etc/pbs
+          readOnly: true
+      volumes:
+      - name: pbs-keyfile
+        secret:
+          secretName: pbs-encryption-keyfile
+          optional: true
+          items:
+          - key: keyfile
+            path: keyfile
+            mode: 0400

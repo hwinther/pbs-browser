@@ -13,6 +13,8 @@ CLI (which holds the decryption keyfile) behind a small HTTP API + SPA. There is
 - `backend/` — ASP.NET Core 10 Minimal API (`PbsBrowser.slnx`, project `src/Api`, tests `tests/Api.Tests`).
 - `frontend/` — Vite + React + TypeScript SPA, built into `backend/src/Api/wwwroot` at image build.
 - `Dockerfile` — single multi-stage image (frontend build → pbs-client-static → dotnet publish → runtime).
+- `deploy/` — workload manifests (Deployment, Service, Ingress), shipped as a signed OCI artifact
+  that Flux in hwinther/proxmox applies. `deploy/README.md` is the contract with the cluster.
 - `e2e/` — Playwright suite (own npm package on `@wshno/playwright-config`). It asserts on the
   `FakePbsClient` sample data and runs against `docker-compose.e2e.yml` (the image with `PBS_FAKE=1`).
 
@@ -35,7 +37,9 @@ cd e2e && npm ci && npx playwright install chromium && npm test
 - `ci.yml`: frontend and backend build, test and lint.
 - `pr-e2e.yml`: build the image → Grype scan and Playwright e2e in parallel → with the
   `deploy-feature` label, push the image that passed and deploy a preview (real PBS, Authelia-gated).
-- `container.yml`: release image on `v*` tags (dispatched by `tag-and-release.yml`).
+- `container.yml`: release image on `v*` tags (dispatched by `tag-and-release.yml`), then
+  `manifests:<version>` rendered from `deploy/` and signed.
+- `manifest-diff.yml`: PRs that touch `deploy/` get a rendered diff and resource map as a comment.
 
 ## Conventions & hard rules
 
@@ -55,7 +59,9 @@ cd e2e && npm ci && npx playwright install chromium && npm test
 
 ## Deployment
 
-Kubernetes manifests live in the infra repo at
-`proxmox/clusters/production/apps/pbs-browser-production/` (namespace labelled for the Kyverno
-keyfile clone; Traefik forward-auth ingress on `pbs-browser.mgmt.wsh.no`). Secrets are created
-out-of-band — see `pbs-browser-secrets.md` there.
+The workload manifests are `deploy/` here. Each release publishes them as
+`ghcr.io/hwinther/pbs-browser/manifests:<version>`, and the infra repo pins that tag in
+`proxmox/clusters/production/apps/pbs-browser-production/` (the promotion gate). The infra repo
+keeps the namespace (labelled for the Kyverno keyfile clone), the network policies and
+`APP_HOST` (`pbs-browser.mgmt.wsh.no`). Secrets are created out-of-band — see
+`pbs-browser-secrets.md` there.

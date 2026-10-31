@@ -38,3 +38,33 @@ jobs:
       dockerfile: Dockerfile
       # v2 string enum: 'never' only when a manual run unchecks the box; otherwise 'auto' (fail on release builds).
       grype_fail_build: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.grype_fail_build == 'false' && 'never' || 'auto' }}
+
+  # Renders deploy/ with the image just pushed (tag@digest), and ships it as a signed OCI artifact
+  # (ghcr.io/hwinther/pbs-browser/manifests:<version>) for Flux in hwinther/proxmox to pull. Release
+  # builds only: the tag-and-release workflow dispatches this workflow at the tag ref, so the
+  # cosign identity is container.yml@refs/tags/v*, which the OCIRepository verify pins.
+  manifests:
+    needs: container
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # Signed in this job, so the artifact's cosign identity is container.yml@refs/tags/v*, which
+      # the cluster's OCIRepository pins. A single file at the root: the Flux Kustomization applies
+      # everything under its path.
+      - name: Render, validate, push and sign
+        uses: hwinther/reusable-workflows/.github/actions/manifests@c1e80ad637dcdd38bb6de0f447475c40a8625141 # v2.9.0
+        with:
+          mode: push
+          artifact: ghcr.io/hwinther/pbs-browser/manifests
+          tag: ${{ needs.container.outputs.version }}
+          images: ghcr.io/hwinther/pbs-browser/app:${{ needs.container.outputs.version }}@${{ needs.container.outputs.image_digest }}
+          renders: pbs-browser.yaml=deploy

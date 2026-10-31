@@ -1,8 +1,8 @@
 name: "PR build, scan, and E2E"
 
 # Every PR that changes the image: build -> {Grype scan, Playwright e2e} in parallel. With the
-# `deploy-feature` label the image that passed e2e is also promoted and an ephemeral preview env is
-# deployed to the homelab cluster via GitOps (the per-PR overlay under
+# `deploy-feature` label the image that passed e2e is also promoted, deploy/ is rendered into a
+# signed manifest artifact pinned to it, and an ephemeral preview env is deployed to the homelab cluster via GitOps (the per-PR overlay under
 # clusters/production/apps/previews/pbs-browser in hwinther/proxmox; Flux reconciles within ~1 min).
 #
 # On same-repo PRs the build pushes a staging tag (pr-<N>-<sha7>) and hands on repo@digest, so the
@@ -27,6 +27,8 @@ on:
       - "Dockerfile"
       - ".dockerignore"
       - "docker-compose.e2e.yml"
+      # A PR labelled deploy-feature previews its manifest changes.
+      - "deploy/**"
       - ".github/workflows/pr-e2e.yml"
 
 concurrency:
@@ -108,8 +110,38 @@ jobs:
       sbom_cyclonedx_sha256: ${{ needs.scan.outputs.sbom_cyclonedx_sha256 }}
       grype_json_sha256: ${{ needs.scan.outputs.grype_json_sha256 }}
 
-  deploy-preview:
+  # The preview deploys from a rendered, signed manifest artifact (this PR's deploy/), so manifest
+  # changes in a PR run in its preview before they reach a release. The cluster repo's preview
+  # template pins it by digest and only accepts this workflow's signature.
+  manifests:
     needs: [build, push]
+    if: ${{ github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'deploy-feature') }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+    outputs:
+      tag: pr-${{ github.event.pull_request.number }}
+      digest: ${{ steps.push.outputs.digest }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Render, validate, push and sign
+        id: push
+        uses: hwinther/reusable-workflows/.github/actions/manifests@c1e80ad637dcdd38bb6de0f447475c40a8625141 # v2.9.0
+        with:
+          mode: push
+          artifact: ghcr.io/hwinther/pbs-browser/manifests
+          tag: pr-${{ github.event.pull_request.number }}
+          images: ghcr.io/hwinther/pbs-browser/app:${{ needs.build.outputs.version }}@${{ needs.push.outputs.image_digest }}
+          renders: pbs-browser.yaml=deploy
+
+  deploy-preview:
+    needs: [manifests]
     if: ${{ github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'deploy-feature') }}
     permissions:
       contents: read
@@ -121,14 +153,15 @@ jobs:
       pr_number: ${{ github.event.pull_request.number }}
       host: pbs-browser-${{ github.event.pull_request.number }}.preview.wsh.no
       app_name: pbs-browser
-      image_tag: ${{ needs.build.outputs.version }}
-      image_digest: ${{ needs.push.outputs.image_digest }}
+      # The preview template pins the manifest artifact (which pins the image), not the image.
+      image_tag: ${{ needs.manifests.outputs.tag }}
+      image_digest: ${{ needs.manifests.outputs.digest }}
     secrets:
       app_id: ${{ secrets.PROXMOX_GITOPS_APP_ID }}
       app_private_key: ${{ secrets.PROXMOX_GITOPS_APP_PRIVATE_KEY }}
 
   comment:
-    needs: [deploy-preview]
+    needs: [deploy-preview, manifests]
     if: ${{ github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'deploy-feature') }}
     runs-on: ubuntu-latest
     permissions:
@@ -142,7 +175,8 @@ jobs:
             ### Preview environment
 
             Deployed via Flux (reconciles within ~1 min) after the image passed Playwright e2e
-            (which runs it with `PBS_FAKE=1`). The preview runs the same image with the **real**
+            (which runs it with `PBS_FAKE=1`), from the signed manifest artifact
+            `manifests:${{ needs.manifests.outputs.tag }}` (this PR's `deploy/`). The preview runs the same image with the **real**
             proxmox-backup-client against PBS, so it can browse and restore real backups; it is
             Authelia-gated.
 
