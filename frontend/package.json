@@ -23,8 +23,8 @@
     "react-dom": "19.1.0"
   },
   "devDependencies": {
-    "@testing-library/jest-dom": "6.6.3",
-    "@testing-library/react": "16.1.0",
+    "@testing-library/jest-dom": "7.0.1",
+    "@testing-library/react": "16.3.3",
     "@types/react": "19.1.0",
     "@types/react-dom": "19.1.0",
     "@vitejs/plugin-react": "4.3.4",
@@ -33,7 +33,7 @@
     "@wshno/prettier-config": "0.1.1",
     "@wshno/tsconfig": "0.1.1",
     "eslint": "10.13.0",
-    "jsdom": "25.0.1",
+    "jsdom": "30.1.3",
     "prettier": "3.9.10",
     "typescript": "6.0.3",
     "vite": "6.3.5",
