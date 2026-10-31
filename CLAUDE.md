@@ -13,6 +13,8 @@ CLI (which holds the decryption keyfile) behind a small HTTP API + SPA. There is
 - `backend/` — ASP.NET Core 10 Minimal API (`PbsBrowser.slnx`, project `src/Api`, tests `tests/Api.Tests`).
 - `frontend/` — Vite + React + TypeScript SPA, built into `backend/src/Api/wwwroot` at image build.
 - `Dockerfile` — single multi-stage image (frontend build → pbs-client-static → dotnet publish → runtime).
+- `e2e/` — Playwright suite (own npm package on `@wshno/playwright-config`). It asserts on the
+  `FakePbsClient` sample data and runs against `docker-compose.e2e.yml` (the image with `PBS_FAKE=1`).
 
 ## Commands
 
@@ -23,7 +25,17 @@ dotnet test  backend/PbsBrowser.slnx
 cd frontend && npm install && npm run dev              # :5173
 cd frontend && npm test && npm run build
 docker build --platform linux/amd64 -t pbs-browser:dev .
+# e2e against the image (or against `dotnet run`, which fakes PBS in Development; build the SPA first)
+APP_IMAGE=pbs-browser:dev docker compose -f docker-compose.e2e.yml up -d --wait
+cd e2e && npm ci && npx playwright install chromium && npm test
 ```
+
+## CI
+
+- `ci.yml`: frontend and backend build, test and lint.
+- `pr-e2e.yml`: build the image → Grype scan and Playwright e2e in parallel → with the
+  `deploy-feature` label, push the image that passed and deploy a preview (real PBS, Authelia-gated).
+- `container.yml`: release image on `v*` tags (dispatched by `tag-and-release.yml`).
 
 ## Conventions & hard rules
 
