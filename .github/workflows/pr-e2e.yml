@@ -141,8 +141,10 @@ jobs:
           message: |
             ### Preview environment
 
-            Deployed via Flux (reconciles within ~1 min) after the image passed Playwright e2e.
-            Runs the **real** proxmox-backup-client against PBS and is Authelia-gated.
+            Deployed via Flux (reconciles within ~1 min) after the image passed Playwright e2e
+            (which runs it with `PBS_FAKE=1`). The preview runs the same image with the **real**
+            proxmox-backup-client against PBS, so it can browse and restore real backups; it is
+            Authelia-gated.
 
             - Preview URL: ${{ needs.deploy-preview.outputs.preview_url }}
 
