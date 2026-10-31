@@ -1,5 +1,5 @@
-import { defineConfig } from 'vitest/config';
-import react from '@vitejs/plugin-react';
+import { defineConfig } from 'vitest/config'
+import react from '@vitejs/plugin-react'
 
 // The SPA is built directly into the backend's wwwroot so the single ASP.NET image serves it.
 export default defineConfig({
@@ -32,4 +32,4 @@ export default defineConfig({
       json: './coverage/json-report.json',
     },
   },
-});
+})
