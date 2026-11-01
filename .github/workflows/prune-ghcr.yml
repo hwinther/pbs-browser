@@ -31,6 +31,7 @@ on:
 permissions:
   contents: read
   packages: write
+  pull-requests: read # the reusable job looks up open PRs for pr-<N> tags; without it the run never starts
 
 concurrency:
   group: prune-ghcr
@@ -41,6 +42,7 @@ jobs:
     permissions:
       contents: read
       packages: write
+      pull-requests: read # the reusable job looks up open PRs for pr-<N> tags; without it the run never starts
     uses: hwinther/reusable-workflows/.github/workflows/prune-ghcr.yml@83abef784511f6e7704a512164741a9bdebcbf3a # v2.9.1
     with:
       # Scheduled runs prune for real; manual runs use the input. The old expression handed the
