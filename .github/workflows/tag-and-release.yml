@@ -26,7 +26,7 @@ jobs:
     permissions:
       contents: write
       actions: write
-    uses: hwinther/reusable-workflows/.github/workflows/tag-and-release.yml@c1e80ad637dcdd38bb6de0f447475c40a8625141 # v2.9.0
+    uses: hwinther/reusable-workflows/.github/workflows/tag-and-release.yml@83abef784511f6e7704a512164741a9bdebcbf3a # v2.9.1
     with:
       tag_name: ${{ inputs.tag_name }}
       release_notes: ${{ inputs.release_notes }}
@@ -38,34 +38,20 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       actions: write
-      contents: read
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-        with:
-          fetch-depth: 0
-          persist-credentials: false
-
-      - name: Determine ref for the container build
-        id: ref
-        run: |
-          git fetch --tags --force
-          TAG="${{ inputs.tag_name }}"
-          if [ "$TAG" = "auto" ] || [ -z "$TAG" ]; then
-            REF=$(git tag -l 'v*' --sort=-v:refname | head -n1)
-          else
-            REF="$TAG"
-          fi
-          if [ -z "$REF" ]; then
-            echo "::error::Could not resolve a tag ref for the container build."
-            exit 1
-          fi
-          echo "Using ref: $REF"
-          echo "ref=$REF" >> "$GITHUB_OUTPUT"
-
+      # The tag comes from the reusable job's output, the tag it just created. Guessing it with
+      # `git fetch --tags` + the highest v* tag needed a checkout, and could pick a different tag
+      # than the one just made. No checkout is needed at all.
       - name: Dispatch container workflow
         env:
           GH_TOKEN: ${{ github.token }}
-        run: >-
-          gh workflow run container.yml
-          --ref "${{ steps.ref.outputs.ref }}"
-          -f grype_fail_build=${{ inputs.container_grype_fail_build }}
+          REPO: ${{ github.repository }}
+          TAG: ${{ needs.tag.outputs.tag_name }}
+          GRYPE_FAIL_BUILD: ${{ inputs.container_grype_fail_build }}
+        run: |
+          if [ -z "$TAG" ]; then
+            echo "::error::The tag job reported no tag name."
+            exit 1
+          fi
+          echo "Dispatching container.yml at $TAG"
+          gh workflow run container.yml -R "$REPO" --ref "$TAG" -f grype_fail_build="$GRYPE_FAIL_BUILD"
