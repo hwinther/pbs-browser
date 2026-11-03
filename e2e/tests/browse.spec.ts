@@ -1,6 +1,6 @@
 import { readFile } from 'node:fs/promises'
 
-import { expect, test } from '@playwright/test'
+import { expect, test } from './fixtures'
 
 // FakePbsClient sample data (backend/src/Api/Pbs/FakePbsClient.cs).
 const SNAPSHOT = 'host/grafana/2026-07-01T04:30:00Z'

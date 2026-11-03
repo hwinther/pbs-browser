@@ -1,11 +1,28 @@
 using Microsoft.Extensions.Caching.Memory;
+using OpenTelemetry.Logs;
 using PbsBrowser.Api.Pbs;
+using PbsBrowser.Api.Security;
 
 var builder = WebApplication.CreateBuilder(args);
 
 var pbsOptions = PbsOptions.FromConfiguration(builder.Configuration);
 builder.Services.AddSingleton(pbsOptions);
 builder.Services.AddMemoryCache();
+
+// CSP violation reports reach Loki only over OTLP (the cluster ships no pod stdout). Exported when
+// OTEL_EXPORTER_OTLP_ENDPOINT is set (protocol, service name and resource from the OTEL_* env), and
+// only the CSP category; every other log stays on stdout alone.
+if (!string.IsNullOrWhiteSpace(builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"]))
+{
+    builder.Logging.AddOpenTelemetry(otel =>
+    {
+        otel.IncludeScopes = true;
+        otel.IncludeFormattedMessage = true;
+        otel.AddOtlpExporter();
+    });
+    builder.Logging.AddFilter<OpenTelemetryLoggerProvider>(null, LogLevel.None);
+    builder.Logging.AddFilter<OpenTelemetryLoggerProvider>(CspReports.LoggerCategory, LogLevel.Information);
+}
 
 // Use the real client, or a sample in-memory fake for local dev without the binary. The fake is
 // selected when PBS_FAKE is set explicitly, or automatically in Development when the binary is
@@ -26,6 +43,8 @@ var app = builder.Build();
 if (useFake)
     app.Logger.LogWarning(
         "PBS client is in FAKE mode (sample data, no real PBS). Set PBS_FAKE=0 to force the real binary.");
+
+app.UseSecurityHeaders(app.Configuration);
 
 // SPA static assets (built into wwwroot at image build).
 app.UseDefaultFiles();
@@ -101,6 +120,9 @@ if (app.Configuration["PBS_DEBUG"] is "1" or "true" or "True")
 }
 
 app.MapGet("/healthz", () => Results.Text("ok"));
+
+// Browsers POST CSP violation reports here (Security/SecurityHeaders.cs).
+app.MapCspReports();
 
 // SPA fallback — any non-API route serves the app shell.
 app.MapFallbackToFile("index.html");

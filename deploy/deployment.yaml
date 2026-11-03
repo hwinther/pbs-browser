@@ -45,6 +45,24 @@ spec:
           limits:
             cpu: "1"
             memory: 512Mi
+        env:
+        # report-only: the CSP is sent as Content-Security-Policy-Report-Only (reported, not
+        # enforced). enforce: sent as Content-Security-Policy. See Security/SecurityHeaders.cs.
+        - name: CSP_MODE
+          value: "${CSP_MODE:=report-only}"
+        # OTLP/HTTP export of CSP violation reports (to Loki); empty exports nothing.
+        - name: OTEL_EXPORTER_OTLP_ENDPOINT
+          value: "${OTEL_EXPORTER_OTLP_HTTP_ENDPOINT:=}"
+        - name: OTEL_EXPORTER_OTLP_PROTOCOL
+          value: http/protobuf
+        - name: OTEL_SERVICE_NAME
+          value: pbs-browser
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: OTEL_RESOURCE_ATTRIBUTES
+          value: "service.namespace=$(POD_NAMESPACE)"
         envFrom:
         # PBS_REPOSITORY / PBS_PASSWORD / PBS_ENCRYPTION_PASSWORD / PBS_FINGERPRINT / PBS_NAMESPACE
         - secretRef:
