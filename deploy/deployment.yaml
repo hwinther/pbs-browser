@@ -62,7 +62,7 @@ spec:
             fieldRef:
               fieldPath: metadata.namespace
         - name: OTEL_RESOURCE_ATTRIBUTES
-          value: "service.namespace=$(POD_NAMESPACE)"
+          value: "service.namespace=$(POD_NAMESPACE),deployment.environment=${APP_ENVIRONMENT:=production}"
         envFrom:
         # PBS_REPOSITORY / PBS_PASSWORD / PBS_ENCRYPTION_PASSWORD / PBS_FINGERPRINT / PBS_NAMESPACE
         - secretRef:
