@@ -32,6 +32,8 @@ Flux would otherwise substitute an empty string.
 | Variable | Default | Used for |
 |---|---|---|
 | `APP_HOST` | (required) | Ingress host and homepage links, e.g. `pbs-browser.mgmt.wsh.no` |
+| `CSP_MODE` | `report-only` | `report-only` sends the CSP as Content-Security-Policy-Report-Only; `enforce` blocks |
+| `OTEL_EXPORTER_OTLP_HTTP_ENDPOINT` | empty | OTLP/HTTP collector endpoint for CSP violation reports (to Loki); empty exports nothing |
 
 ### Secrets
 

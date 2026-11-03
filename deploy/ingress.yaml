@@ -27,3 +27,27 @@ spec:
             name: pbs-browser
             port:
               number: 8080
+---
+# Browsers send CSP violation reports in the background, and whether the session cookie comes along
+# varies by browser and report mechanism. Behind forward-auth a cookieless report is redirected to
+# Authelia and silently lost, so this one path skips it. The endpoint only accepts capped report
+# bodies, answers 204 and reads no identity headers. Traefik routes the longer path here ahead of the
+# / rule above.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: pbs-browser-csp-report
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: web,websecure
+spec:
+  rules:
+  - host: ${APP_HOST}
+    http:
+      paths:
+      - path: /csp-report
+        pathType: Exact
+        backend:
+          service:
+            name: pbs-browser
+            port:
+              number: 8080

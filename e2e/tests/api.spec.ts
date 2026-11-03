@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+import { expect, test } from './fixtures'
 
 // The input validation in front of the PBS client is the security boundary (see CLAUDE.md).
 test.describe('api', () => {
