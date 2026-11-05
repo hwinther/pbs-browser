@@ -10,14 +10,25 @@
 # pr-e2e.yml sets it to the build hand-off. For a local run:
 #   docker build --platform linux/amd64 -t pbs-browser:dev .
 #   APP_IMAGE=pbs-browser:dev docker compose -f docker-compose.e2e.yml up -d --wait
+#
+# The suite runs as the `playwright` service (profile e2e) from the image e2e/Dockerfile builds:
+#   docker build -t pbs-browser-e2e:local e2e
+#   docker compose -f docker-compose.e2e.yml --profile e2e run --rm playwright
+# The app traces to `otel-collector`, which writes e2e/otel-out/traces.jsonl for the slow-request
+# report in playwright-e2e.yml.
 
 services:
   app:
     image: ${APP_IMAGE:?set APP_IMAGE to the pbs-browser image ref, e.g. ghcr.io/hwinther/pbs-browser/app@sha256:...}
     environment:
       PBS_FAKE: "1"
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+      OTEL_SERVICE_NAME: pbs-browser
     ports:
       - "8080:8080"
+    depends_on:
+      otel-collector:
+        condition: service_started
 
   # Readiness gate. The aspnet base image ships no curl/wget, so `app` carries no healthcheck of its
   # own. `docker compose up --wait` blocks until this sidecar's /healthz probe reports healthy. (A
@@ -34,3 +45,29 @@ services:
       timeout: 3s
       retries: 40
       start_period: 3s
+
+  # Receives the app's traces (and drops its logs and metrics) while the suite runs.
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.163.2
+    user: "0:0"
+    command: ["--config=/etc/otelcol/collector.yaml"]
+    volumes:
+      - ./e2e/otel/collector.yaml:/etc/otelcol/collector.yaml:ro
+      - ./e2e/otel-out:/out
+
+  # The Playwright suite (e2e/Dockerfile on @wshno/playwright-config's runner image). Host network,
+  # so the specs reach the app on http://localhost:8080 exactly as a local `npx playwright test` does.
+  playwright:
+    image: ${E2E_IMAGE:-pbs-browser-e2e:local}
+    profiles: [e2e]
+    network_mode: host
+    environment:
+      - CI
+      - BASE_URL
+    # Reports land in e2e/ on the host, where the workflow's summary and upload look for them.
+    volumes:
+      - ./e2e/playwright-report:/e2e/playwright-report
+      - ./e2e/test-results:/e2e/test-results
+    depends_on:
+      app-ready:
+        condition: service_healthy

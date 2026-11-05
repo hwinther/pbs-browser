@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Caching.Memory;
 using OpenTelemetry.Logs;
+using OpenTelemetry.Trace;
 using PbsBrowser.Api.Pbs;
 using PbsBrowser.Api.Security;
 
@@ -11,9 +12,20 @@ builder.Services.AddMemoryCache();
 
 // CSP violation reports reach Loki only over OTLP (the cluster ships no pod stdout). Exported when
 // OTEL_EXPORTER_OTLP_ENDPOINT is set (protocol, service name and resource from the OTEL_* env), and
-// only the CSP category; every other log stays on stdout alone.
+// only the CSP category; every other log stays on stdout alone. Traces go to the same endpoint: a
+// server span per request (health checks left out) plus outgoing HTTP calls, for Tempo and for the
+// e2e stack's slow-request report.
 if (!string.IsNullOrWhiteSpace(builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"]))
 {
+    builder.Services.AddOpenTelemetry()
+        .WithTracing(tracing => tracing
+            .AddAspNetCoreInstrumentation(options =>
+            {
+                options.RecordException = true;
+                options.Filter = context => !context.Request.Path.StartsWithSegments("/healthz");
+            })
+            .AddHttpClientInstrumentation()
+            .AddOtlpExporter());
     builder.Logging.AddOpenTelemetry(otel =>
     {
         otel.IncludeScopes = true;

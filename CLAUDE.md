@@ -17,6 +17,9 @@ CLI (which holds the decryption keyfile) behind a small HTTP API + SPA. There is
   that Flux in hwinther/proxmox applies. `deploy/README.md` is the contract with the cluster.
 - `e2e/` — Playwright suite (own npm package on `@wshno/playwright-config`). It asserts on the
   `FakePbsClient` sample data and runs against `docker-compose.e2e.yml` (the image with `PBS_FAKE=1`).
+  `e2e/Dockerfile` bakes it into an image on `ghcr.io/wshno/playwright-config` (same version as the
+  lock file), run as the compose `playwright` service; the app traces to the stack's OTel collector
+  (`e2e/otel/collector.yaml` → `e2e/otel-out/traces.jsonl`) for the slow-request report.
 
 ## Commands
 
@@ -27,16 +30,21 @@ dotnet test  backend/PbsBrowser.slnx
 cd frontend && npm install && npm run dev              # :5173
 cd frontend && npm test && npm run build
 docker build --platform linux/amd64 -t pbs-browser:dev .
-# e2e against the image (or against `dotnet run`, which fakes PBS in Development; build the SPA first)
+# e2e against the image, as CI runs it (suite in its own image, as a compose service)
+docker build -t pbs-browser-e2e:local e2e
 APP_IMAGE=pbs-browser:dev docker compose -f docker-compose.e2e.yml up -d --wait
+APP_IMAGE=pbs-browser:dev docker compose -f docker-compose.e2e.yml --profile e2e run --rm playwright
+# or the suite from the host (also against `dotnet run`, which fakes PBS in Development)
 cd e2e && npm ci && npx playwright install chromium && npm test
 ```
 
 ## CI
 
 - `ci.yml`: frontend and backend build, test and lint.
-- `pr-e2e.yml`: build the image → Grype scan and Playwright e2e in parallel → with the
+- `pr-e2e.yml`: build the app and e2e images → Grype scan and Playwright e2e (compose service, with
+  a PR comment listing API requests over 2 s from the OTel traces) in parallel → with the
   `deploy-feature` label, push the image that passed and deploy a preview (real PBS, Authelia-gated).
+  On main it also runs the unit tests and publishes the quality artifact.
 - `container.yml`: release image on `v*` tags (dispatched by `tag-and-release.yml`), then
   `manifests:<version>` rendered from `deploy/` and signed.
 - `manifest-diff.yml`: PRs that touch `deploy/` get a rendered diff and resource map as a comment.
