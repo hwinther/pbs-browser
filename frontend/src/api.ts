@@ -51,7 +51,8 @@ export const api = {
   version: () => getJson<BuildInfo>('/api/version'),
   snapshots: () => getJson<SnapshotInfo[]>('/api/snapshots'),
   files: (snapshot: string) => getJson<ArchiveInfo[]>(`/api/snapshots/files?snapshot=${encodeURIComponent(snapshot)}`),
-  catalog: (snapshot: string) => getJson<CatalogNode>(`/api/catalog?snapshot=${encodeURIComponent(snapshot)}`),
+  catalog: (snapshot: string, archive: string) =>
+    getJson<CatalogNode>(`/api/catalog?${new URLSearchParams({ snapshot, archive }).toString()}`),
 }
 
 /** The restore archive name is the pxar/img without the index suffix (root.pxar.didx -> root.pxar). */

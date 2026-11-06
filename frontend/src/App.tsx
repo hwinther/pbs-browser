@@ -10,6 +10,8 @@ export default function App() {
   const [snapshot, setSnapshot] = useState('')
   const [archives, setArchives] = useState<ArchiveInfo[]>([])
   const [archive, setArchive] = useState('')
+  // The snapshot that `archives` was loaded for.
+  const [archivesOf, setArchivesOf] = useState('')
   const [tree, setTree] = useState<CatalogNode | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -32,23 +34,60 @@ export default function App() {
   useEffect(() => {
     // Nothing to load without a snapshot; the archive picker + tree render only when one is selected.
     if (!snapshot) return
+    let stale = false
     setError('')
     setLoading(true)
     setTree(null)
     setArchives([])
     setArchive('')
+    setArchivesOf('')
 
-    Promise.all([api.files(snapshot), api.catalog(snapshot)])
-      .then(([files, catalog]) => {
+    api
+      .files(snapshot)
+      .then((files) => {
+        if (stale) return
         const restorable = files.filter((f) => isRestorableArchive(f.filename))
-        setArchives(restorable)
         const first = restorable[0]
+        setArchives(restorable)
         setArchive(first ? restoreArchiveName(first.filename) : '')
-        setTree(catalog)
+        setArchivesOf(snapshot)
+        // With an archive selected, the catalog effect below takes over the loading state.
+        if (!first) setLoading(false)
       })
-      .catch((e: unknown) => setError(String(e)))
-      .finally(() => setLoading(false))
+      .catch((e: unknown) => {
+        if (stale) return
+        setError(String(e))
+        setLoading(false)
+      })
+    return () => {
+      stale = true
+    }
   }, [snapshot])
+
+  useEffect(() => {
+    // Each archive has its own tree. Wait until the archive list is this snapshot's, so a switch of
+    // snapshot never asks for the previous snapshot's archive.
+    if (!archive || archivesOf !== snapshot) return
+    let stale = false
+    setError('')
+    setLoading(true)
+    setTree(null)
+
+    api
+      .catalog(snapshot, archive)
+      .then((catalog) => {
+        if (!stale) setTree(catalog)
+      })
+      .catch((e: unknown) => {
+        if (!stale) setError(String(e))
+      })
+      .finally(() => {
+        if (!stale) setLoading(false)
+      })
+    return () => {
+      stale = true
+    }
+  }, [snapshot, archive, archivesOf])
 
   return (
     <div className="app">
@@ -93,6 +132,9 @@ export default function App() {
 
       {error && <p className="error">{error}</p>}
       {loading && <p className="muted">Loading catalog…</p>}
+      {snapshot && !loading && archivesOf === snapshot && archives.length === 0 && (
+        <p className="muted">No browsable archives in this snapshot.</p>
+      )}
       {snapshot && tree && !loading && <Tree root={tree} snapshot={snapshot} archive={archive} />}
 
       {buildInfo && (

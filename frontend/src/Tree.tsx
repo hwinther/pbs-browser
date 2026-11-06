@@ -22,7 +22,7 @@ interface TreeProps {
 
 export function Tree({ root, snapshot, archive }: TreeProps) {
   if (!root.children?.length) {
-    return <p className="muted">No files in this snapshot.</p>
+    return <p className="muted">No files in this archive.</p>
   }
   return (
     <ul className="tree">

@@ -7,7 +7,8 @@ public interface IPbsClient
 
     Task<IReadOnlyList<ArchiveInfo>> ListArchivesAsync(string snapshot, CancellationToken ct);
 
-    Task<CatalogNode> GetCatalogAsync(string snapshot, CancellationToken ct);
+    /// <summary>The snapshot's catalog, one tree per pxar archive.</summary>
+    Task<SnapshotCatalog> GetCatalogAsync(string snapshot, CancellationToken ct);
 
     /// <summary>Restores a single file to a scratch dir and returns a stream over it, or null if the
     /// path was not present in the archive. The returned stream cleans the scratch dir on dispose.</summary>
