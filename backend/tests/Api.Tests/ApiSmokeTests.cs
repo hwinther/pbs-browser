@@ -62,11 +62,32 @@ public class ApiSmokeTests : IClassFixture<WebApplicationFactory<Program>>
     }
 
     [Fact]
-    public async Task Catalog_accepts_valid_snapshot()
+    public async Task Catalog_returns_the_tree_of_the_requested_archive()
     {
         var client = _factory.CreateClient();
-        var resp = await client.GetAsync("/api/catalog?snapshot=host/demo/2026-06-30T00:00:00Z", Ct);
-        resp.EnsureSuccessStatusCode();
+        var tree = await client.GetFromJsonAsync<CatalogNode>(
+            "/api/catalog?snapshot=host/demo/2026-06-30T00:00:00Z&archive=root.pxar", Ct);
+        Assert.Equal("etc", Assert.Single(tree!.Children).Name);
+    }
+
+    [Fact]
+    public async Task Catalog_of_an_archive_without_entries_is_empty()
+    {
+        var client = _factory.CreateClient();
+        var tree = await client.GetFromJsonAsync<CatalogNode>(
+            "/api/catalog?snapshot=host/demo/2026-06-30T00:00:00Z&archive=other.pxar", Ct);
+        Assert.Empty(tree!.Children);
+    }
+
+    [Theory]
+    [InlineData("/api/catalog?snapshot=host/demo/2026-06-30T00:00:00Z")]
+    [InlineData("/api/catalog?snapshot=host/demo/2026-06-30T00:00:00Z&archive=../root.pxar")]
+    [InlineData("/api/catalog?snapshot=host/demo/2026-06-30T00:00:00Z&archive=root.txt")]
+    public async Task Catalog_rejects_missing_or_malformed_archive(string url)
+    {
+        var client = _factory.CreateClient();
+        var resp = await client.GetAsync(url, Ct);
+        Assert.Equal(HttpStatusCode.BadRequest, resp.StatusCode);
     }
 
     [Fact]
@@ -116,8 +137,9 @@ public class ApiSmokeTests : IClassFixture<WebApplicationFactory<Program>>
         public Task<IReadOnlyList<ArchiveInfo>> ListArchivesAsync(string snapshot, CancellationToken ct) =>
             Task.FromResult<IReadOnlyList<ArchiveInfo>>([new ArchiveInfo("root.pxar.didx", 999, "encrypt")]);
 
-        public Task<CatalogNode> GetCatalogAsync(string snapshot, CancellationToken ct) =>
-            Task.FromResult(new CatalogNode { Name = "/", Path = "/", IsDir = true });
+        public Task<SnapshotCatalog> GetCatalogAsync(string snapshot, CancellationToken ct) =>
+            Task.FromResult(CatalogParser.Parse(
+                "d \"./root.pxar.didx\"\nf \"./root.pxar.didx/etc/hosts\" 19 2026-06-30T00:00:00Z\n"));
 
         public Task<RestoreResult?> RestoreFileAsync(string snapshot, string archive, string innerPath, CancellationToken ct)
         {

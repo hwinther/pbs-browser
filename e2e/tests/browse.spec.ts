@@ -25,7 +25,7 @@ test.describe('browse and restore', () => {
     // Only pxar/img archives are offered, without the index suffix.
     const archive = page.getByLabel('Archive')
     await expect(archive).toHaveValue('config.pxar')
-    await expect(archive.locator('option')).toHaveCount(1)
+    await expect(archive.locator('option')).toHaveText(['config.pxar', 'data.pxar'])
 
     await expect(page.getByText('adminlist.txt')).toBeVisible()
     await expect(page.getByText('Geirangerheim.db')).toBeHidden()
@@ -37,6 +37,23 @@ test.describe('browse and restore', () => {
 
     const row = page.locator('.row.file', { hasText: 'Geirangerheim.db' })
     await expect(row.locator('.size')).toHaveText('8.0 MB')
+  })
+
+  test('shows only the selected archive', async ({ page }) => {
+    await page.getByLabel('Snapshot').selectOption(SNAPSHOT)
+    await expect(page.getByText('adminlist.txt')).toBeVisible()
+    await expect(page.getByText('grafana.db')).toHaveCount(0)
+
+    await page.getByLabel('Archive').selectOption('data.pxar')
+    await expect(page.getByText('grafana.db')).toBeVisible()
+    await expect(page.getByRole('button', { name: /plugins/ })).toBeVisible()
+    await expect(page.getByText('adminlist.txt')).toHaveCount(0)
+
+    const row = page.locator('.row.file', { hasText: 'grafana.db' })
+    const downloadPromise = page.waitForEvent('download')
+    await row.getByRole('link', { name: 'Download' }).click()
+    const body = await readFile(await (await downloadPromise).path(), 'utf8')
+    expect(body).toContain(`from data.pxar in ${SNAPSHOT}`)
   })
 
   test('restores a file as a download', async ({ page }) => {

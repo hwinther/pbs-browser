@@ -67,7 +67,10 @@ The request flow, spread across `Program.cs` and `backend/src/Api/Pbs/`:
    the binary at `PBS_CLIENT_PATH` is absent. A new client operation needs **both** implementations, and
    the e2e specs assert on the fake's sample data, so changing that data means updating `e2e/tests`.
 3. **Parsers**: `SnapshotParser` reads the JSON from `snapshot list|files`, and `CatalogParser` turns
-   `catalog dump` text into a `CatalogNode` tree. `/api/catalog` caches the tree in `IMemoryCache` for 10 min.
+   `catalog dump` text into a `SnapshotCatalog`: one `CatalogNode` tree per archive, keyed like the
+   restore's archive name (`config.pxar`, no `.didx`). One dump covers every archive, so
+   `/api/catalog?snapshot=&archive=` caches the whole catalog per snapshot in `IMemoryCache` for
+   10 min and returns the requested archive's tree.
 4. **Download**: `restore <snapshot> <archive> <scratch> --pattern <path>` into a `pbsr-<guid>` temp
    dir, then streamed back through `CleanupFileStream`, which deletes the dir on dispose. Each restore
    is audit-logged (category `Audit`) with the `Remote-User`.
@@ -113,7 +116,8 @@ Vite dev server proxies `/api` and `/healthz` to :8080.
 - The image is **amd64-only** (`proxmox-backup-client-static` has no arm64 build).
 - `catalog dump` (client 4.2.8) writes its listing to **stderr** with an empty stdout, so it is
   parsed from both streams (`CatalogParser.ParseCommandOutput`); only known entry-type lines count.
-  The real captured output is a fixture in `CatalogParserTests`, and `FakePbsClient` mimics it.
+  Each archive is a top-level `./<archive>.didx` directory in the dump. Real captured output (one
+  and two archives) is a fixture in `CatalogParserTests`, and `FakePbsClient` mimics it.
 - Some snapshots (the k0s nodes) are deliberately encrypted with a key this app does not hold, so
   it cannot become a privilege-escalation path; they fail with "wrong key". Don't work around that.
 - `catalog dump` output is a text format, not a stable API — the line tokenizer in `CatalogParser`

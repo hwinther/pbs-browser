@@ -1,17 +1,20 @@
 namespace PbsBrowser.Api.Pbs;
 
 /// <summary>
-/// Parses <c>proxmox-backup-client catalog dump &lt;snapshot&gt;</c> output into a tree.
+/// Parses <c>proxmox-backup-client catalog dump &lt;snapshot&gt;</c> output into one tree per archive.
 ///
-/// Each line is <c>&lt;type&gt; "&lt;path&gt;" [size mtime]</c>, e.g.
+/// Each line is <c>&lt;type&gt; "&lt;path&gt;" [size mtime]</c>. A snapshot's catalog covers all of
+/// its pxar archives, each as a top-level <c>./&lt;archive&gt;.didx</c> directory (client 4.2.8):
 /// <code>
-/// d "./config.pxar.didx/worlds_local"
-/// f "./config.pxar.didx/worlds_local/world.db" 8439727 2026-07-01T04:00:22Z
+/// d "./data.pxar.didx"
+/// f "./data.pxar.didx/mosquitto.db" 6812 2026-11-06T20:34:28Z
+/// d "./bin.pxar.didx"
+/// f "./bin.pxar.didx/pbs-job" 1904800 2026-11-06T08:34:08Z
 /// </code>
-/// The quoted path is prefixed with <c>./</c> and the archive name (e.g. <c>config.pxar.didx</c>);
-/// both are stripped so the tree shows real filesystem paths (<c>/worlds_local/world.db</c>). Type
-/// <c>d</c> is a directory, anything else (<c>f</c>, <c>l</c>, …) is a file. Files carry a trailing
-/// size which we capture.
+/// The archive component picks the tree, keyed by the name <c>restore</c> takes (<c>data.pxar</c>,
+/// without the index suffix), and the rest is the path inside it (<c>/mosquitto.db</c>). Lines without
+/// an archive component are ignored. Type <c>d</c> is a directory, any other entry type a file; files
+/// carry a trailing size which we capture.
 ///
 /// proxmox-backup-client 4.x writes the dump to <b>stderr</b> (via its logger) and leaves stdout
 /// empty, so <see cref="ParseCommandOutput"/> reads both streams. Only lines whose type is a known
@@ -23,12 +26,12 @@ public static class CatalogParser
     private static readonly HashSet<string> EntryTypes = ["d", "f", "l", "h", "b", "c", "p", "s"];
 
     /// <summary>Parses a <c>catalog dump</c> run, wherever the client put the listing.</summary>
-    public static CatalogNode ParseCommandOutput(CommandResult result) =>
+    public static SnapshotCatalog ParseCommandOutput(CommandResult result) =>
         Parse(result.StdOut + "\n" + result.StdErr);
 
-    public static CatalogNode Parse(string dumpText)
+    public static SnapshotCatalog Parse(string dumpText)
     {
-        var root = new CatalogNode { Name = "/", Path = "/", IsDir = true };
+        var archives = new Dictionary<string, CatalogNode>(StringComparer.Ordinal);
 
         foreach (var rawLine in dumpText.Split('\n'))
         {
@@ -36,15 +39,19 @@ public static class CatalogParser
             if (line.Length == 0) continue;
 
             if (!TryParse(line, out var type, out var rawPath, out var size)) continue;
+            if (!TrySplitArchive(rawPath, out var archive, out var inner)) continue;
 
-            var inner = ToInnerPath(rawPath);
-            if (inner.Length == 0) continue;
+            if (!archives.TryGetValue(archive, out var root))
+                archives[archive] = root = SnapshotCatalog.EmptyRoot();
 
-            Insert(root, inner, isDir: type.StartsWith('d'), size);
+            // The archive's own line ("d ./data.pxar.didx") only registers the archive.
+            if (inner.Length > 0)
+                Insert(root, inner, isDir: type.StartsWith('d'), size);
         }
 
-        SortRecursive(root);
-        return root;
+        foreach (var root in archives.Values)
+            SortRecursive(root);
+        return new SnapshotCatalog(archives);
     }
 
     private static bool TryParse(string line, out string type, out string path, out long? size)
@@ -79,23 +86,25 @@ public static class CatalogParser
         return EntryTypes.Contains(type);
     }
 
-    // "./config.pxar.didx/worlds_local/world.db" -> "/worlds_local/world.db"
-    private static string ToInnerPath(string path)
+    // "./config.pxar.didx/worlds_local/world.db" -> ("config.pxar", "/worlds_local/world.db")
+    // "./config.pxar.didx"                      -> ("config.pxar", "")
+    private static bool TrySplitArchive(string path, out string archive, out string inner)
     {
+        archive = string.Empty;
+        inner = string.Empty;
+
         path = path.Trim().Trim('"');
         if (path.StartsWith("./", StringComparison.Ordinal)) path = path[2..];
-        path = path.TrimStart('/');
-        if (path.Length == 0) return string.Empty;
+        path = path.Trim('/');
+        if (path.Length == 0) return false;
 
         var slash = path.IndexOf('/');
-        if (slash < 0)
-            return IsArchiveComponent(path) ? string.Empty : "/" + path;
+        var first = slash < 0 ? path : path[..slash];
+        if (!IsArchiveComponent(first)) return false;
 
-        if (IsArchiveComponent(path[..slash]))
-            path = path[(slash + 1)..];
-
-        path = path.TrimEnd('/');
-        return path.Length == 0 ? string.Empty : "/" + path;
+        archive = SnapshotCatalog.ArchiveKey(first);
+        inner = slash < 0 ? string.Empty : "/" + path[(slash + 1)..];
+        return true;
     }
 
     private static bool IsArchiveComponent(string s) =>

@@ -27,7 +27,7 @@ public sealed class PbsClient(PbsOptions options, ILogger<PbsClient> logger) : I
         return SnapshotParser.ParseFiles(stdout);
     }
 
-    public async Task<CatalogNode> GetCatalogAsync(string snapshot, CancellationToken ct)
+    public async Task<SnapshotCatalog> GetCatalogAsync(string snapshot, CancellationToken ct)
     {
         var result = await DumpCatalogRawAsync(snapshot, ct);
         if (result.ExitCode != 0) throw new PbsException(Clip(result.StdErr));

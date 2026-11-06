@@ -87,18 +87,21 @@ api.MapGet("/snapshots/files", async (string snapshot, IPbsClient pbs, Cancellat
     return Results.Ok(await pbs.ListArchivesAsync(snapshot, ct));
 });
 
-api.MapGet("/catalog", async (string snapshot, IPbsClient pbs, IMemoryCache cache, CancellationToken ct) =>
+api.MapGet("/catalog", async (string snapshot, string archive, IPbsClient pbs, IMemoryCache cache, CancellationToken ct) =>
 {
     if (!PbsInputValidation.IsValidSnapshot(snapshot))
         return Results.BadRequest(new { error = "invalid snapshot" });
+    if (!PbsInputValidation.IsValidArchive(archive))
+        return Results.BadRequest(new { error = "invalid archive" });
 
     // The catalog is metadata-only and cheap to decrypt, but still a process spawn — cache briefly.
-    var tree = await cache.GetOrCreateAsync($"catalog::{snapshot}", entry =>
+    // One dump covers every archive of the snapshot, so it is cached per snapshot.
+    var catalog = await cache.GetOrCreateAsync($"catalog::{snapshot}", entry =>
     {
         entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10);
         return pbs.GetCatalogAsync(snapshot, ct);
     });
-    return Results.Ok(tree);
+    return Results.Ok(catalog!.For(archive));
 });
 
 api.MapGet("/download", async (string snapshot, string archive, string path,

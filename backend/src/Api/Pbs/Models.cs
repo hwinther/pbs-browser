@@ -22,6 +22,25 @@ public sealed class CatalogNode
     public List<CatalogNode> Children { get; set; } = [];
 }
 
+/// <summary>
+/// A snapshot's catalog: one file tree per pxar archive, keyed by the archive name <c>restore</c>
+/// takes (<c>config.pxar</c>, without the <c>.didx</c>/<c>.fidx</c> index suffix).
+/// </summary>
+public sealed record SnapshotCatalog(IReadOnlyDictionary<string, CatalogNode> Archives)
+{
+    /// <summary>The tree of one archive; empty when the catalog has no entries for it.</summary>
+    public CatalogNode For(string archive) =>
+        Archives.TryGetValue(ArchiveKey(archive), out var root) ? root : EmptyRoot();
+
+    /// <summary><c>config.pxar.didx</c> and <c>config.pxar</c> both name <c>config.pxar</c>.</summary>
+    public static string ArchiveKey(string archive) =>
+        archive.EndsWith(".didx", StringComparison.Ordinal) || archive.EndsWith(".fidx", StringComparison.Ordinal)
+            ? archive[..^5]
+            : archive;
+
+    public static CatalogNode EmptyRoot() => new() { Name = "/", Path = "/", IsDir = true };
+}
+
 /// <summary>A restored file ready to stream. Disposing <see cref="Stream"/> cleans the scratch dir.</summary>
 public sealed record RestoreResult(Stream Stream, long Length, string FileName);
 

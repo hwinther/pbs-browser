@@ -11,7 +11,8 @@ namespace PbsBrowser.Api.Pbs;
 public sealed class FakePbsClient : IPbsClient
 {
     // Served on stderr with an empty stdout, as proxmox-backup-client 4.2.8 does, so the fake and
-    // the e2e suite exercise the same stream handling as production.
+    // the e2e suite exercise the same stream handling as production. Two archives, each its own
+    // top-level ./<archive>.didx, as in a real multi-archive dump.
     private const string SampleCatalogDump =
         """
         d "./config.pxar.didx"
@@ -20,6 +21,9 @@ public sealed class FakePbsClient : IPbsClient
         d "./config.pxar.didx/worlds_local"
         f "./config.pxar.didx/worlds_local/Geirangerheim.db" 8439727 2026-07-01T04:00:22Z
         f "./config.pxar.didx/worlds_local/Geirangerheim.fwl" 2410 2026-07-01T04:00:22Z
+        d "./data.pxar.didx"
+        d "./data.pxar.didx/plugins"
+        f "./data.pxar.didx/grafana.db" 1048576 2026-07-01T04:29:51Z
         """;
 
     public Task<IReadOnlyList<SnapshotInfo>> ListSnapshotsAsync(CancellationToken ct) =>
@@ -38,10 +42,11 @@ public sealed class FakePbsClient : IPbsClient
         [
             new ArchiveInfo("catalog.pcat1.didx", 718, "encrypt"),
             new ArchiveInfo("config.pxar.didx", 50_588_152, "encrypt"),
+            new ArchiveInfo("data.pxar.didx", 1_052_000, "encrypt"),
             new ArchiveInfo("index.json.blob", 495, "sign-only"),
         ]);
 
-    public Task<CatalogNode> GetCatalogAsync(string snapshot, CancellationToken ct) =>
+    public Task<SnapshotCatalog> GetCatalogAsync(string snapshot, CancellationToken ct) =>
         Task.FromResult(CatalogParser.ParseCommandOutput(SampleCatalogDumpRun));
 
     public Task<RestoreResult?> RestoreFileAsync(string snapshot, string archive, string innerPath, CancellationToken ct)
