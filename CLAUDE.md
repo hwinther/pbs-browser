@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-Guidance for working in this repo.
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## What this is
 
@@ -24,9 +24,11 @@ CLI (which holds the decryption keyfile) behind a small HTTP API + SPA. There is
 ## Commands
 
 ```bash
-dotnet build backend/PbsBrowser.slnx
-dotnet run   --project backend/src/Api/Api.csproj      # :8080
-dotnet test  backend/PbsBrowser.slnx
+# dotnet commands run from backend/: its global.json opts into Microsoft.Testing.Platform, and
+# `dotnet test` from the repo root fails with "Testing with VSTest target is no longer supported"
+cd backend && dotnet build PbsBrowser.slnx
+cd backend && dotnet run --project src/Api/Api.csproj   # :8080
+cd backend && dotnet test --solution PbsBrowser.slnx
 cd frontend && npm install && npm run dev              # :5173
 cd frontend && npm test && npm run build
 docker build --platform linux/amd64 -t pbs-browser:dev .
@@ -37,6 +39,54 @@ APP_IMAGE=pbs-browser:dev docker compose -f docker-compose.e2e.yml --profile e2e
 # or the suite from the host (also against `dotnet run`, which fakes PBS in Development)
 cd e2e && npm ci && npx playwright install chromium && npm test
 ```
+
+Single tests and linting:
+
+```bash
+# backend (from backend/): xunit v3 on MTP — filters go straight to dotnet test
+dotnet test --project tests/Api.Tests --filter-class "*CatalogParserTests"
+dotnet test --project tests/Api.Tests --filter-method "*IsValidSnapshot*"
+# frontend (vitest)
+cd frontend && npx vitest run src/Tree.test.tsx -t "<test name>"
+cd frontend && npm run lint && npm run typecheck && npm run format:check
+# e2e
+cd e2e && npx playwright test tests/browse.spec.ts && npm run lint && npm run typecheck
+```
+
+The backend builds with `TreatWarningsAsErrors` and restores from committed `packages.lock.json`
+files, so a NuGet change also needs the lock file updated (`dotnet restore --force-evaluate`).
+
+## Architecture
+
+The request flow, spread across `Program.cs` and `backend/src/Api/Pbs/`:
+
+1. **Endpoints** (all in `Program.cs`, a Minimal API under `/api`) validate every user value with
+   `PbsInputValidation` before anything else.
+2. **`IPbsClient`** has two implementations, picked at startup: `PbsClient` (spawns the binary) and
+   `FakePbsClient` (in-memory sample data). The fake is used when `PBS_FAKE=1`, or in Development when
+   the binary at `PBS_CLIENT_PATH` is absent. A new client operation needs **both** implementations, and
+   the e2e specs assert on the fake's sample data, so changing that data means updating `e2e/tests`.
+3. **Parsers**: `SnapshotParser` reads the JSON from `snapshot list|files`, and `CatalogParser` turns
+   `catalog dump` text into a `CatalogNode` tree. `/api/catalog` caches the tree in `IMemoryCache` for 10 min.
+4. **Download**: `restore <snapshot> <archive> <scratch> --pattern <path>` into a `pbsr-<guid>` temp
+   dir, then streamed back through `CleanupFileStream`, which deletes the dir on dispose. Each restore
+   is audit-logged (category `Audit`) with the `Remote-User`.
+
+Runtime flags besides the `PBS_*` connection vars (listed in README):
+- `PBS_FAKE`: forces the fake client on (`1`) or off (`0`).
+- `PBS_DEBUG=1`: adds `/api/debug/catalog`, which returns the raw `catalog dump` exit code and
+  output. Use it when adjusting the `CatalogParser` tokenizer.
+- `CSP_MODE`: `report-only` (the default) or `enforce`. `Security/SecurityHeaders.cs` sets a strict
+  CSP with no `'unsafe-inline'`, so the SPA must not use inline scripts or styles. Browsers post
+  violations to `/csp-report` (`CspReports`).
+- `OTEL_EXPORTER_OTLP_ENDPOINT`: turns on OTLP traces (one span per request, `/healthz` excluded).
+  Logs are exported only for the CSP-report category; everything else stays on stdout.
+
+The frontend has no router or state library: `App.tsx` handles the snapshot → archive → tree flow,
+`Tree.tsx` is the lazy tree, and `api.ts` holds the fetch layer plus the pure helpers (snapshot
+grouping by host, archive-name mapping) that the unit tests cover. `vite build` empties and writes
+`backend/src/Api/wwwroot`, so to run e2e on the host against `dotnet run`, build the SPA first. The
+Vite dev server proxies `/api` and `/healthz` to :8080.
 
 ## CI
 
@@ -61,6 +111,11 @@ cd e2e && npm ci && npx playwright install chromium && npm test
   ingress solely from Traefik (forward-auth). Do not expose this app without that in front.
 - Scratch dirs from a restore are deleted on stream close (`CleanupFileStream`) / in a `finally`.
 - The image is **amd64-only** (`proxmox-backup-client-static` has no arm64 build).
+- `catalog dump` (client 4.2.8) writes its listing to **stderr** with an empty stdout, so it is
+  parsed from both streams (`CatalogParser.ParseCommandOutput`); only known entry-type lines count.
+  The real captured output is a fixture in `CatalogParserTests`, and `FakePbsClient` mimics it.
+- Some snapshots (the k0s nodes) are deliberately encrypted with a key this app does not hold, so
+  it cannot become a privilege-escalation path; they fail with "wrong key". Don't work around that.
 - `catalog dump` output is a text format, not a stable API — the line tokenizer in `CatalogParser`
   may need adjusting to the installed client version; the tree-building logic is unit-tested so only
   the tokenizer should ever change.

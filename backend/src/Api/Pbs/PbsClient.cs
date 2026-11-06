@@ -29,12 +29,9 @@ public sealed class PbsClient(PbsOptions options, ILogger<PbsClient> logger) : I
 
     public async Task<CatalogNode> GetCatalogAsync(string snapshot, CancellationToken ct)
     {
-        var args = new List<string> { "catalog", "dump", snapshot };
-        AddKeyfile(args);
-        AddNamespace(args);
-        var (exit, stdout, stderr) = await RunAsync(args, ct);
-        if (exit != 0) throw new PbsException(Clip(stderr));
-        return CatalogParser.Parse(stdout);
+        var result = await DumpCatalogRawAsync(snapshot, ct);
+        if (result.ExitCode != 0) throw new PbsException(Clip(result.StdErr));
+        return CatalogParser.ParseCommandOutput(result);
     }
 
     public async Task<RestoreResult?> RestoreFileAsync(string snapshot, string archive, string innerPath, CancellationToken ct)

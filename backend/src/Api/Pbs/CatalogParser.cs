@@ -12,9 +12,20 @@ namespace PbsBrowser.Api.Pbs;
 /// both are stripped so the tree shows real filesystem paths (<c>/worlds_local/world.db</c>). Type
 /// <c>d</c> is a directory, anything else (<c>f</c>, <c>l</c>, …) is a file. Files carry a trailing
 /// size which we capture.
+///
+/// proxmox-backup-client 4.x writes the dump to <b>stderr</b> (via its logger) and leaves stdout
+/// empty, so <see cref="ParseCommandOutput"/> reads both streams. Only lines whose type is a known
+/// catalog entry type are taken, so the client's own log lines on stderr never become tree nodes.
 /// </summary>
 public static class CatalogParser
 {
+    // pxar catalog entry types: directory, file, symlink, hardlink, block/char device, fifo, socket.
+    private static readonly HashSet<string> EntryTypes = ["d", "f", "l", "h", "b", "c", "p", "s"];
+
+    /// <summary>Parses a <c>catalog dump</c> run, wherever the client put the listing.</summary>
+    public static CatalogNode ParseCommandOutput(CommandResult result) =>
+        Parse(result.StdOut + "\n" + result.StdErr);
+
     public static CatalogNode Parse(string dumpText)
     {
         var root = new CatalogNode { Name = "/", Path = "/", IsDir = true };
@@ -57,7 +68,7 @@ public static class CatalogParser
                     break;
                 }
             }
-            return type.Length > 0;
+            return EntryTypes.Contains(type);
         }
 
         // Fallback: "<type> <path>" without quotes.
@@ -65,7 +76,7 @@ public static class CatalogParser
         if (sp <= 0) return false;
         type = line[..sp];
         path = line[(sp + 1)..].Trim();
-        return true;
+        return EntryTypes.Contains(type);
     }
 
     // "./config.pxar.didx/worlds_local/world.db" -> "/worlds_local/world.db"
