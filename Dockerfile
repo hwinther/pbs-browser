@@ -40,8 +40,10 @@ COPY backend/ ./backend/
 COPY --from=frontend /src/frontend/dist/ ./backend/src/Api/wwwroot/
 RUN dotnet publish backend/src/Api/Api.csproj -c Release -o /app/publish /p:UseAppHost=false
 
-# 4) Runtime
-FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
+# 4) Runtime — chiseled: no shell, no apt, only what .NET needs (the PBS client is static, and
+# InvariantGlobalization means no ICU). Debug with PBS_DEBUG=1 or an ephemeral `kubectl debug`
+# container, not `kubectl exec ... sh`.
+FROM mcr.microsoft.com/dotnet/aspnet:10.0-noble-chiseled AS final
 WORKDIR /app
 COPY --from=backend /app/publish ./
 COPY --from=pbs-client /out/proxmox-backup-client /usr/bin/proxmox-backup-client
