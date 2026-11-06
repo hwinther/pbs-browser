@@ -40,7 +40,7 @@ public sealed class PbsClient(PbsOptions options, ILogger<PbsClient> logger) : I
         Directory.CreateDirectory(scratch);
         try
         {
-            var args = new List<string> { "restore", snapshot, archive, scratch, "--pattern", innerPath };
+            var args = RestoreArgs(snapshot, archive, scratch, innerPath);
             AddKeyfile(args);
             AddNamespace(args);
             var (exit, _, stderr) = await RunAsync(args, ct);
@@ -65,6 +65,24 @@ public sealed class PbsClient(PbsOptions options, ILogger<PbsClient> logger) : I
             throw;
         }
     }
+
+    /// <summary>
+    /// <c>restore</c> of one file into <paramref name="scratch"/>. Only the file's bytes are streamed
+    /// back, so its metadata is not restored: the app runs as a non-root user, and restoring the
+    /// original owner fails with "failed to set ownership: Operation not permitted" (client 4.2.8).
+    /// ACLs and xattrs could fail the same way, and restored permissions (e.g. mode 0000) could make
+    /// the file unreadable for streaming. The scratch dir already exists, so existing dirs are allowed.
+    /// </summary>
+    internal static List<string> RestoreArgs(string snapshot, string archive, string scratch, string innerPath) =>
+    [
+        "restore", snapshot, archive, scratch,
+        "--pattern", innerPath,
+        "--allow-existing-dirs", "true",
+        "--ignore-ownership", "true",
+        "--ignore-permissions", "true",
+        "--ignore-acls", "true",
+        "--ignore-xattrs", "true",
+    ];
 
     public async Task<CommandResult> DumpCatalogRawAsync(string snapshot, CancellationToken ct)
     {

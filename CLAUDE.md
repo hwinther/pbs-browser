@@ -118,6 +118,10 @@ Vite dev server proxies `/api` and `/healthz` to :8080.
   parsed from both streams (`CatalogParser.ParseCommandOutput`); only known entry-type lines count.
   Each archive is a top-level `./<archive>.didx` directory in the dump. Real captured output (one
   and two archives) is a fixture in `CatalogParserTests`, and `FakePbsClient` mimics it.
+- The app runs as a non-root user (uid 1654), so `restore` must skip file metadata
+  (`--ignore-ownership/-permissions/-acls/-xattrs`, see `PbsClient.RestoreArgs`). Without it the
+  client fails with "failed to set ownership: Operation not permitted". The fake client never
+  restores anything, so only a preview against real PBS exercises this path.
 - Some snapshots (the k0s nodes) are deliberately encrypted with a key this app does not hold, so
   it cannot become a privilege-escalation path; they fail with "wrong key". Don't work around that.
 - `catalog dump` output is a text format, not a stable API — the line tokenizer in `CatalogParser`
