@@ -55,7 +55,7 @@ public class CatalogParserTests
 
     // Captured verbatim from proxmox-backup-client 4.2.8 `catalog dump host/mosquitto/…`: exit 0,
     // stdout empty, the listing on stderr, each line padded with trailing spaces.
-    private static readonly CommandResult RealDump_4_2_8 = new(
+    private static readonly CommandResult RealDump428 = new(
         0,
         string.Empty,
         "d \"./data.pxar.didx\"    \n" +
@@ -65,7 +65,7 @@ public class CatalogParserTests
     [Fact]
     public void ParseCommandOutput_reads_listing_from_stderr_as_client_4_2_8_writes_it()
     {
-        var root = CatalogParser.ParseCommandOutput(RealDump_4_2_8);
+        var root = CatalogParser.ParseCommandOutput(RealDump428);
 
         Assert.Equal(["lost+found", "mosquitto.db"], root.Children.Select(c => c.Name).ToArray());
         Assert.True(root.Children[0].IsDir);
