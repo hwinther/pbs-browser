@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Caching.Memory;
 using OpenTelemetry.Logs;
 using OpenTelemetry.Trace;
+using PbsBrowser.Api;
 using PbsBrowser.Api.Pbs;
 using PbsBrowser.Api.Security;
 
@@ -71,6 +72,10 @@ api.MapGet("/me", (HttpContext ctx) => Results.Ok(new
     user = ctx.Request.Headers["Remote-User"].FirstOrDefault() ?? string.Empty,
     email = ctx.Request.Headers["Remote-Email"].FirstOrDefault() ?? string.Empty,
 }));
+
+// Version and commit stamped in at publish, shown in the UI footer.
+var buildInfo = BuildInfo.FromAssembly(typeof(Program).Assembly);
+api.MapGet("/version", () => Results.Ok(buildInfo));
 
 api.MapGet("/snapshots", async (IPbsClient pbs, CancellationToken ct) =>
     Results.Ok(await pbs.ListSnapshotsAsync(ct)));

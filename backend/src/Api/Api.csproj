@@ -5,6 +5,9 @@
     <AssemblyName>PbsBrowser.Api</AssemblyName>
     <!-- The SPA is copied into wwwroot at image build; keep an empty dir tracked in dev. -->
     <SpaRoot>wwwroot\</SpaRoot>
+    <!-- Shown in the UI via /api/version. The image build overrides it with the GitVersion version
+         (-p:InformationalVersion=$APP_VERSION -p:SourceRevisionId=$GIT_SHA). -->
+    <InformationalVersion>0.0.0-local</InformationalVersion>
   </PropertyGroup>
 
   <ItemGroup>

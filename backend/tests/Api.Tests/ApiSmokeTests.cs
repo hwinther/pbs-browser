@@ -36,6 +36,16 @@ public class ApiSmokeTests : IClassFixture<WebApplicationFactory<Program>>
     }
 
     [Fact]
+    public async Task Version_returns_the_stamped_version()
+    {
+        var client = _factory.CreateClient();
+        var info = await client.GetFromJsonAsync<BuildInfo>("/api/version", Ct);
+        Assert.NotNull(info);
+        // The csproj default; CI images override it with the GitVersion version.
+        Assert.Equal("0.0.0-local", info.Version);
+    }
+
+    [Fact]
     public async Task Snapshots_returns_fake_list()
     {
         var client = _factory.CreateClient();

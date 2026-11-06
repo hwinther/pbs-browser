@@ -39,6 +39,7 @@ The image is **linux/amd64 only** — Proxmox ships `proxmox-backup-client-stati
 | GET | `/api/catalog?snapshot=` | file tree (`catalog dump`, decrypted with the keyfile) |
 | GET | `/api/download?snapshot=&archive=&path=` | restore + stream one file |
 | GET | `/api/me` | echo the forward-auth identity headers |
+| GET | `/api/version` | app version + commit stamped in at image build (shown in the UI footer) |
 | GET | `/healthz` | liveness/readiness |
 
 ## Develop

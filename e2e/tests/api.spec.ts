@@ -26,6 +26,16 @@ test.describe('api', () => {
     expect(response.status()).toBe(400)
   })
 
+  test('reports the app version, shown in the footer', async ({ request, page }) => {
+    const response = await request.get('/api/version')
+    expect(response.status()).toBe(200)
+    const { version } = (await response.json()) as { version: string }
+    expect(version).not.toBe('')
+
+    await page.goto('/')
+    await expect(page.getByRole('contentinfo')).toContainText(`pbs-browser ${version}`)
+  })
+
   test('serves the SPA for unknown routes', async ({ page }) => {
     await page.goto('/some/deep/link')
     await expect(page.getByRole('heading', { name: 'PBS Browser' })).toBeVisible()
