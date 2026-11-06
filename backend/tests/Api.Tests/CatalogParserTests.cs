@@ -1,4 +1,3 @@
-using System.Linq;
 using PbsBrowser.Api.Pbs;
 using Xunit;
 
