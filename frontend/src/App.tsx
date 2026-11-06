@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
-import { api, groupSnapshotsByHost, isRestorableArchive, restoreArchiveName } from './api'
-import type { ArchiveInfo, CatalogNode, Identity, SnapshotInfo } from './api'
+import { api, formatVersion, groupSnapshotsByHost, isRestorableArchive, restoreArchiveName } from './api'
+import type { ArchiveInfo, BuildInfo, CatalogNode, Identity, SnapshotInfo } from './api'
 import { Tree } from './Tree'
 
 export default function App() {
   const [identity, setIdentity] = useState<Identity | null>(null)
+  const [buildInfo, setBuildInfo] = useState<BuildInfo | null>(null)
   const [snapshots, setSnapshots] = useState<SnapshotInfo[]>([])
   const [snapshot, setSnapshot] = useState('')
   const [archives, setArchives] = useState<ArchiveInfo[]>([])
@@ -17,6 +18,10 @@ export default function App() {
     api
       .me()
       .then(setIdentity)
+      .catch(() => undefined)
+    api
+      .version()
+      .then(setBuildInfo)
       .catch(() => undefined)
     api
       .snapshots()
@@ -89,6 +94,12 @@ export default function App() {
       {error && <p className="error">{error}</p>}
       {loading && <p className="muted">Loading catalog…</p>}
       {snapshot && tree && !loading && <Tree root={tree} snapshot={snapshot} archive={archive} />}
+
+      {buildInfo && (
+        <footer className="version muted" title={buildInfo.commit ?? undefined}>
+          pbs-browser {formatVersion(buildInfo)}
+        </footer>
+      )}
     </div>
   )
 }

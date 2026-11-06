@@ -1,6 +1,18 @@
 import { describe, expect, test } from 'vitest'
 import type { SnapshotInfo } from './api'
-import { buildDownloadUrl, groupSnapshotsByHost, isRestorableArchive, restoreArchiveName } from './api'
+import { buildDownloadUrl, formatVersion, groupSnapshotsByHost, isRestorableArchive, restoreArchiveName } from './api'
+
+describe('formatVersion', () => {
+  test('adds the short commit when there is one', () => {
+    expect(formatVersion({ version: '0.5.2', commit: '896ef5455b6996ac671092d79d066decf264c110' })).toBe(
+      '0.5.2 (896ef54)',
+    )
+  })
+
+  test('is just the version without a commit', () => {
+    expect(formatVersion({ version: '0.0.0-local', commit: null })).toBe('0.0.0-local')
+  })
+})
 
 describe('archive helpers', () => {
   test('restoreArchiveName strips index suffixes', () => {

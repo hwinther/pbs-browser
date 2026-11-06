@@ -35,10 +35,15 @@ RUN set -eux; \
 
 # 3) Publish the API, with the SPA baked into wwwroot
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS backend
+# Passed by the reusable docker-container workflow (GitVersion version + commit); served by
+# /api/version and shown in the UI footer.
+ARG APP_VERSION=0.0.0-local
+ARG GIT_SHA=
 WORKDIR /src
 COPY backend/ ./backend/
 COPY --from=frontend /src/frontend/dist/ ./backend/src/Api/wwwroot/
-RUN dotnet publish backend/src/Api/Api.csproj -c Release -o /app/publish /p:UseAppHost=false
+RUN dotnet publish backend/src/Api/Api.csproj -c Release -o /app/publish /p:UseAppHost=false \
+      "-p:InformationalVersion=${APP_VERSION}" "-p:SourceRevisionId=${GIT_SHA}"
 
 # 4) Runtime — chiseled: no shell, no apt, only what .NET needs (the PBS client is static, and
 # InvariantGlobalization means no ICU). Debug with PBS_DEBUG=1 or an ephemeral `kubectl debug`

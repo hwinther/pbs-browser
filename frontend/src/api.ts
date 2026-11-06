@@ -26,6 +26,16 @@ export interface Identity {
   email: string
 }
 
+export interface BuildInfo {
+  version: string
+  commit: string | null
+}
+
+/** `0.5.2 (896ef54)`: the version, plus the short commit when the build carries one. */
+export function formatVersion(info: BuildInfo): string {
+  return info.commit ? `${info.version} (${info.commit.slice(0, 7)})` : info.version
+}
+
 async function getJson<T>(url: string): Promise<T> {
   const resp = await fetch(url)
   if (!resp.ok) {
@@ -38,6 +48,7 @@ async function getJson<T>(url: string): Promise<T> {
 
 export const api = {
   me: () => getJson<Identity>('/api/me'),
+  version: () => getJson<BuildInfo>('/api/version'),
   snapshots: () => getJson<SnapshotInfo[]>('/api/snapshots'),
   files: (snapshot: string) => getJson<ArchiveInfo[]>(`/api/snapshots/files?snapshot=${encodeURIComponent(snapshot)}`),
   catalog: (snapshot: string) => getJson<CatalogNode>(`/api/catalog?snapshot=${encodeURIComponent(snapshot)}`),
