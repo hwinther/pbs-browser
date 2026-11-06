@@ -1,4 +1,3 @@
-using System.Linq;
 using PbsBrowser.Api.Pbs;
 using Xunit;
 
@@ -51,6 +50,47 @@ public class CatalogParserTests
         Assert.False(db.IsDir);
         Assert.Equal(8439727, db.Size);
         Assert.Equal("/worlds_local/world.db", db.Path);
+    }
+
+    // Captured verbatim from proxmox-backup-client 4.2.8 `catalog dump host/mosquitto/…`: exit 0,
+    // stdout empty, the listing on stderr, each line padded with trailing spaces.
+    private static readonly CommandResult RealDump428 = new(
+        0,
+        string.Empty,
+        "d \"./data.pxar.didx\"    \n" +
+        "d \"./data.pxar.didx/lost+found\"    \n" +
+        "f \"./data.pxar.didx/mosquitto.db\" 6818 2026-11-06T08:40:57Z    \n");
+
+    [Fact]
+    public void ParseCommandOutput_reads_listing_from_stderr_as_client_4_2_8_writes_it()
+    {
+        var root = CatalogParser.ParseCommandOutput(RealDump428);
+
+        Assert.Equal(["lost+found", "mosquitto.db"], root.Children.Select(c => c.Name).ToArray());
+        Assert.True(root.Children[0].IsDir);
+        var db = root.Children[1];
+        Assert.False(db.IsDir);
+        Assert.Equal("/mosquitto.db", db.Path);
+        Assert.Equal(6818, db.Size);
+    }
+
+    [Fact]
+    public void ParseCommandOutput_still_reads_stdout()
+    {
+        var root = CatalogParser.ParseCommandOutput(new CommandResult(0, Dump, string.Empty));
+        Assert.Equal(["worlds_local", "adminlist.txt"], root.Children.Select(c => c.Name).ToArray());
+    }
+
+    [Fact]
+    public void Parse_ignores_client_log_lines()
+    {
+        var root = CatalogParser.Parse(
+            "Error: something went sideways\n" +
+            "starting catalog dump\n" +
+            "WARN \"./data.pxar.didx/not-a-file\"\n" +
+            "f \"./data.pxar.didx/real\" 1 2026-01-01T00:00:00Z\n");
+
+        Assert.Equal("real", Assert.Single(root.Children).Name);
     }
 
     [Fact]

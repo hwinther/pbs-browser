@@ -10,6 +10,8 @@ namespace PbsBrowser.Api.Pbs;
 /// </summary>
 public sealed class FakePbsClient : IPbsClient
 {
+    // Served on stderr with an empty stdout, as proxmox-backup-client 4.2.8 does, so the fake and
+    // the e2e suite exercise the same stream handling as production.
     private const string SampleCatalogDump =
         """
         d "./config.pxar.didx"
@@ -40,7 +42,7 @@ public sealed class FakePbsClient : IPbsClient
         ]);
 
     public Task<CatalogNode> GetCatalogAsync(string snapshot, CancellationToken ct) =>
-        Task.FromResult(CatalogParser.Parse(SampleCatalogDump));
+        Task.FromResult(CatalogParser.ParseCommandOutput(SampleCatalogDumpRun));
 
     public Task<RestoreResult?> RestoreFileAsync(string snapshot, string archive, string innerPath, CancellationToken ct)
     {
@@ -51,5 +53,7 @@ public sealed class FakePbsClient : IPbsClient
     }
 
     public Task<CommandResult> DumpCatalogRawAsync(string snapshot, CancellationToken ct) =>
-        Task.FromResult(new CommandResult(0, SampleCatalogDump, string.Empty));
+        Task.FromResult(SampleCatalogDumpRun);
+
+    private static readonly CommandResult SampleCatalogDumpRun = new(0, string.Empty, SampleCatalogDump);
 }
