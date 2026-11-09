@@ -67,6 +67,10 @@ updates:
   ignore:
   - dependency-name: "*"
     update-types: [ "version-update:semver-patch" ]
+  # typescript-eslint, which @wshno/eslint-config builds on, supports TypeScript <6.1. Drop this once a
+  # typescript-eslint release widens that range.
+  - dependency-name: "typescript"
+    versions: [">=6.1"]
   groups:
     types:
       patterns:
