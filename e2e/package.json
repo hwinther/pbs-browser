@@ -18,7 +18,7 @@
     "@wshno/tsconfig": "0.1.1",
     "eslint": "10.14.0",
     "prettier": "3.9.10",
-    "typescript": "6.0.3"
+    "typescript": "7.0.2"
   },
   "prettier": "@wshno/prettier-config"
 }
