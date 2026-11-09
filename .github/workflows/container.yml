@@ -1,4 +1,4 @@
-name: "Publish container to GHCR"
+name: Publish release
 
 # Single combined image (SPA + API + proxmox-backup-client). Built from the repo-root Dockerfile.
 # linux/amd64 only — the reusable workflow builds for the runner arch (amd64) by default, which is
