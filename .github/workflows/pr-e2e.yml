@@ -29,6 +29,7 @@ on:
       - "docker-compose.e2e.yml"
       # A PR labelled deploy-feature previews its manifest changes.
       - "deploy/**"
+      - ".github/manifest-renders.txt"
       - ".github/workflows/pr-e2e.yml"
   push:
     branches:
@@ -42,6 +43,7 @@ on:
       - "docker-compose.e2e.yml"
       # A PR labelled deploy-feature previews its manifest changes.
       - "deploy/**"
+      - ".github/manifest-renders.txt"
       - ".github/workflows/pr-e2e.yml"
 
 concurrency:
@@ -219,13 +221,13 @@ jobs:
 
       - name: Render, validate, push and sign
         id: push
-        uses: hwinther/reusable-workflows/.github/actions/manifests@6b6810e17143f38ac9dc0f84d504e7ff08b1d2bf # v2.26.0
+        uses: hwinther/reusable-workflows/.github/actions/manifests@1fa5882e8aa1048af78492baf016f5a7b310be11 # v2.29.0
         with:
           mode: push
           artifact: ghcr.io/hwinther/pbs-browser/manifests
           tag: pr-${{ github.event.pull_request.number }}
           images: ghcr.io/hwinther/pbs-browser/app:${{ needs.build.outputs.version }}@${{ needs.push.outputs.image_digest }}
-          renders: pbs-browser.yaml=deploy
+          renders_file: .github/manifest-renders.txt
 
   deploy-preview:
     needs: [manifests]
