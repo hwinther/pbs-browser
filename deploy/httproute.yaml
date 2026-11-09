@@ -1,0 +1,52 @@
+# Authelia forward-auth is part of the workload, not a cluster choice: the app has no auth code and
+# trusts the Remote-User / Remote-Email headers it injects (CLAUDE.md), so it must never be exposed
+# without it. The app reads those headers only for its restore audit log.
+#
+# Attaches to the cluster's platform Gateway (listener `web`); the target namespace must be allowed to
+# attach routes and be granted the hostname. An ExtensionRef filter is a namespace-local reference, so
+# the namespace must also hold the Traefik Middleware `authelia-forwardauth` (the cluster generates it).
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: pbs-browser
+  annotations:
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/group: Platform
+    gethomepage.dev/name: PBS Browser
+    gethomepage.dev/href: "https://${APP_HOST}/"
+    gethomepage.dev/siteMonitor: "https://${APP_HOST}"
+    gethomepage.dev/icon: mdi-folder-search
+    gethomepage.dev/description: Browse & restore files from encrypted PBS backups
+spec:
+  parentRefs:
+  - name: "${GATEWAY_NAME:=traefik}"
+    namespace: "${GATEWAY_NAMESPACE:=traefik}"
+    sectionName: "${GATEWAY_LISTENER:=web}"
+  hostnames:
+  - "${APP_HOST}"
+  rules:
+  # Browsers send CSP violation reports in the background, and whether the session cookie comes along
+  # varies by browser and report mechanism. Behind forward-auth a cookieless report is redirected to
+  # Authelia and silently lost, so this one path skips it. The endpoint only accepts capped report
+  # bodies, answers 204 and reads no identity headers. An Exact match takes precedence over the
+  # PathPrefix rule below (Gateway API match precedence).
+  - matches:
+    - path:
+        type: Exact
+        value: /csp-report
+    backendRefs:
+    - name: pbs-browser
+      port: 8080
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /
+    filters:
+    - type: ExtensionRef
+      extensionRef:
+        group: traefik.io
+        kind: Middleware
+        name: authelia-forwardauth
+    backendRefs:
+    - name: pbs-browser
+      port: 8080

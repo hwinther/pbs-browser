@@ -31,10 +31,13 @@ Flux would otherwise substitute an empty string.
 
 | Variable | Default | Used for |
 |---|---|---|
-| `APP_HOST` | (required) | Ingress host and homepage links, e.g. `pbs-browser.mgmt.wsh.no` |
+| `APP_HOST` | (required) | HTTPRoute hostname and homepage links, e.g. `pbs-browser.mgmt.wsh.no` |
 | `CSP_MODE` | `report-only` | `report-only` sends the CSP as Content-Security-Policy-Report-Only; `enforce` blocks |
 | `OTEL_EXPORTER_OTLP_HTTP_ENDPOINT` | empty | OTLP/HTTP collector endpoint for CSP violation reports (to Loki); empty exports nothing |
 | `APP_ENVIRONMENT` | `production` | `deployment.environment` resource attribute on the exported logs |
+| `GATEWAY_NAME` | `traefik` | Gateway the HTTPRoute attaches to |
+| `GATEWAY_NAMESPACE` | `traefik` | Namespace of that Gateway |
+| `GATEWAY_LISTENER` | `web` | Gateway listener (`sectionName`) |
 
 ### Secrets
 
@@ -47,13 +50,16 @@ In the target namespace:
 ### Cluster requirements
 
 - An amd64 node (`proxmox-backup-client-static` has no arm64 build).
-- The `authelia-production-authelia-forwardauth` Traefik middleware. The app has no auth of its
-  own and trusts the headers it injects.
-- Ingress to port 8080 from Traefik (host network), and egress to PBS.
+- A Gateway API Gateway the HTTPRoute can attach to (`GATEWAY_*`), whose listener allows routes from
+  the target namespace, and a grant for the `APP_HOST` hostname.
+- The Traefik Middleware `authelia-forwardauth` (Authelia forward-auth) **in the target namespace**:
+  the HTTPRoute's ExtensionRef filter is a namespace-local reference. The app has no auth of its own
+  and trusts the headers it injects.
+- Traffic to port 8080 from Traefik (host network), and egress to PBS.
 
 ### Resource names
 
-`Deployment/pbs-browser`, `Service/pbs-browser`, `Ingress/pbs-browser`. Flux prunes anything that
+`Deployment/pbs-browser`, `Service/pbs-browser`, `HTTPRoute/pbs-browser`. Flux prunes anything that
 disappears from the artifact, so rename deliberately.
 
 ## Render locally
