@@ -34,6 +34,9 @@ jobs:
     with:
       container_registry: ghcr.io
       container_image_name_postfix: app
+      # The GitHub Release already exists when tag-and-release pushes the tag, and attaching the
+      # SBOMs to it needs contents: write. They stay available as workflow artifacts.
+      release_asset_upload_enabled: false
       build_context: .
       dockerfile: Dockerfile
       # v2 string enum: 'never' only when a manual run unchecks the box; otherwise 'auto' (fail on release builds).
