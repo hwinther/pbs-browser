@@ -7,6 +7,9 @@ export default defineConfig({
   build: {
     outDir: '../backend/src/Api/wwwroot',
     emptyOutDir: true,
+    // Source maps next to the bundle, so the e2e run's browser coverage maps back to src/. The repo is
+    // public, so they disclose nothing new.
+    sourcemap: true,
   },
   server: {
     port: 5173,

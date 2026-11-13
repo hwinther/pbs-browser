@@ -6,13 +6,27 @@
  * The specs assert on FakePbsClient's sample data (backend/src/Api/Pbs/FakePbsClient.cs).
  */
 import { devices } from '@playwright/test'
-import { definePlaywrightConfig } from '@wshno/playwright-config'
+import { ciReporters, definePlaywrightConfig, isCI, localReporters, monocartReporter } from '@wshno/playwright-config'
+
+const baseURL = process.env.BASE_URL ?? 'http://localhost:8080'
 
 // Shared defaults (testDir ./tests, forbidOnly, retries, the github/html/json CI reporters at the
 // paths the reusable reads, trace, screenshot and video on failure) come from @wshno/playwright-config.
 export default definePlaywrightConfig({
+  // In CI, also monocart-reporter with the browser's V8 coverage of the SPA (recorded by coverageTest in
+  // tests/fixtures.ts), mapped through the bundle's source maps to frontend/src/**, the same paths as
+  // vitest's Cobertura: monocart-coverage/, which pr-e2e.yml uploads and the quality artifact counts.
+  reporter: isCI
+    ? [
+        ...ciReporters,
+        monocartReporter({
+          name: 'pbs-browser E2E',
+          coverage: { origin: baseURL, layout: { root: 'frontend', sourceDirs: ['src'] } },
+        }),
+      ]
+    : localReporters,
   use: {
-    baseURL: process.env.BASE_URL ?? 'http://localhost:8080',
+    baseURL,
   },
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
 })
