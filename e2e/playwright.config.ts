@@ -21,7 +21,11 @@ export default definePlaywrightConfig({
         ...ciReporters,
         monocartReporter({
           name: 'pbs-browser E2E',
-          coverage: { origin: baseURL, layout: { root: 'frontend', sourceDirs: ['src'] } },
+          coverage: {
+            origin: baseURL,
+            // The same files as the unit coverage (frontend/vite.config.ts): no entry point or test setup.
+            layout: { root: 'frontend', sourceDirs: ['src'], exclude: /^frontend\/src\/(main\.tsx$|test\/)/ },
+          },
         }),
       ]
     : localReporters,
