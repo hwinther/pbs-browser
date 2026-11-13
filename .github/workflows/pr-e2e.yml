@@ -193,7 +193,6 @@ jobs:
     with:
       source_root: frontend
       source_dirs: src
-      exclude: ^frontend/src/test/
       unit_label: Unit (vitest)
       unit_coverage_command: npm run coverage:ci
       unit_working_directory: frontend

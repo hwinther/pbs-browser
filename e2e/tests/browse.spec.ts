@@ -1,5 +1,7 @@
 import { readFile } from 'node:fs/promises'
 
+import { expectAccessible } from '@wshno/playwright-config'
+
 import { expect, test } from './fixtures'
 
 // FakePbsClient sample data (backend/src/Api/Pbs/FakePbsClient.cs).
@@ -9,6 +11,14 @@ test.describe('browse and restore', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/')
     await expect(page.getByRole('heading', { name: 'PBS Browser' })).toBeVisible()
+  })
+
+  // axe (WCAG 2.x A/AA): fails on serious or critical violations, on the start page and with a catalog open.
+  test('is accessible', async ({ page }) => {
+    await expectAccessible(page)
+    await page.getByLabel('Snapshot').selectOption(SNAPSHOT)
+    await expect(page.getByText('adminlist.txt')).toBeVisible()
+    await expectAccessible(page)
   })
 
   test('lists the snapshots grouped by host', async ({ page }) => {

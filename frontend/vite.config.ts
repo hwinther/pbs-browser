@@ -26,6 +26,11 @@ export default defineConfig({
     // (irongut/CodeCoverageSummary) always finds it. coverage:ci passes --coverage.
     coverage: {
       reporter: ['cobertura', 'lcov', 'html', 'json'],
+      // Every source file counts, not only the ones a test imports (Vitest's default), so an untested
+      // file shows up as 0 %. Left out: the entry point and the test setup. The e2e coverage leaves out
+      // the same (layout.exclude in e2e/playwright.config.ts).
+      include: ['src/**/*.{ts,tsx}'],
+      exclude: ['src/main.tsx', 'src/test/**', 'src/**/*.test.{ts,tsx}', 'src/**/*.d.ts'],
     },
     // Emit coverage/junit-report.xml so the reusable pr-build.yml node job
     // (dorny/test-reporter, jest-junit parser) always finds the report.
