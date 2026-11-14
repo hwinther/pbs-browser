@@ -8,7 +8,14 @@
 import { devices } from '@playwright/test'
 import { ciReporters, definePlaywrightConfig, isCI, localReporters, monocartReporter } from '@wshno/playwright-config'
 
+import { authFile } from './tests/auth-paths'
+
 const baseURL = process.env.BASE_URL ?? 'http://localhost:8080'
+// An https BASE_URL is a deployed env (nightly-preview.yml: the same image in PBS_FAKE mode, behind
+// Authelia forward-auth), so a `setup` project signs the e2e user in first (tests/auth.setup.ts).
+// The compose stack and a local run are plain http on localhost and need no sign-in.
+const deployed = baseURL.startsWith('https://')
+const chromium = { ...devices['Desktop Chrome'] }
 
 // Shared defaults (testDir ./tests, forbidOnly, retries, the github/html/json CI reporters at the
 // paths the reusable reads, trace, screenshot and video on failure) come from @wshno/playwright-config.
@@ -32,5 +39,10 @@ export default definePlaywrightConfig({
   use: {
     baseURL,
   },
-  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
+  projects: deployed
+    ? [
+        { name: 'setup', testMatch: /auth\.setup\.ts/ },
+        { name: 'chromium', use: { ...chromium, storageState: authFile }, dependencies: ['setup'] },
+      ]
+    : [{ name: 'chromium', use: chromium }],
 })
