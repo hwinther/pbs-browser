@@ -8,14 +8,16 @@ test.describe('api', () => {
     expect(await response.text()).toBe('ok')
   })
 
-  test('rejects a snapshot with path traversal', async ({ request }) => {
+  // @local-only (both traversal probes): on a deployed env the NAXSI edge blocks `..` in a query
+  // (rule 1200) before the app sees it. The app's own check is what's under test here.
+  test('rejects a snapshot with path traversal', { tag: '@local-only' }, async ({ request }) => {
     const response = await request.get('/api/catalog', {
       params: { snapshot: 'host/../../etc/2026-07-01T04:30:00Z' },
     })
     expect(response.status()).toBe(400)
   })
 
-  test('rejects a restore path with traversal', async ({ request }) => {
+  test('rejects a restore path with traversal', { tag: '@local-only' }, async ({ request }) => {
     const response = await request.get('/api/download', {
       params: {
         snapshot: 'host/grafana/2026-07-01T04:30:00Z',
