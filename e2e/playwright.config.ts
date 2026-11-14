@@ -39,6 +39,9 @@ export default definePlaywrightConfig({
   use: {
     baseURL,
   },
+  // The edge in front of a deployed env (NAXSI) rejects some requests before they reach the app, such
+  // as the path-traversal probes; specs that only hold against the app itself are tagged @local-only.
+  grepInvert: deployed ? /@local-only/ : undefined,
   projects: deployed
     ? [
         { name: 'setup', testMatch: /auth\.setup\.ts/ },

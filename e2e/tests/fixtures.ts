@@ -9,3 +9,6 @@ import { coverageTest, guardsTest } from '@wshno/playwright-config'
 
 export { expect } from '@playwright/test'
 export const test = mergeTests(guardsTest, coverageTest)
+
+/** An https BASE_URL: the nightly preview env behind Authelia, not the compose stack (playwright.config.ts). */
+export const deployed = (process.env.BASE_URL ?? '').startsWith('https://')

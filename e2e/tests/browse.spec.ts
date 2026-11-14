@@ -2,7 +2,7 @@ import { readFile } from 'node:fs/promises'
 
 import { expectAccessible } from '@wshno/playwright-config'
 
-import { expect, test } from './fixtures'
+import { deployed, expect, test } from './fixtures'
 
 // FakePbsClient sample data (backend/src/Api/Pbs/FakePbsClient.cs).
 const SNAPSHOT = 'host/grafana/2026-07-01T04:30:00Z'
@@ -83,11 +83,15 @@ test.describe('browse and restore', () => {
 })
 
 test.describe('identity', () => {
-  // In the cluster Traefik/Authelia inject these; here the test plays the forward-auth proxy.
-  test.use({ extraHTTPHeaders: { 'Remote-User': 'e2e-user', 'Remote-Email': 'e2e@example.com' } })
+  // On a deployed env Authelia's forward-auth sets these for the signed-in e2e user; against the
+  // compose stack the test plays the forward-auth proxy itself.
+  const user = deployed ? (process.env.E2E_USERNAME ?? '') : 'e2e-user'
+  test.use({
+    extraHTTPHeaders: deployed ? {} : { 'Remote-User': 'e2e-user', 'Remote-Email': 'e2e@example.com' },
+  })
 
   test('shows the forward-auth user', async ({ page }) => {
     await page.goto('/')
-    await expect(page.getByText('Signed in as e2e-user')).toBeVisible()
+    await expect(page.getByText(`Signed in as ${user}`)).toBeVisible()
   })
 })
