@@ -1,0 +1,54 @@
+name: Nightly preview E2E
+
+# Every night: deploys main (manifests:main, pushed and signed by pr-e2e.yml on every merge) to an
+# ephemeral preview env, pbs-browser-nightly.preview.wsh.no, runs the e2e suite against it, then tears
+# it down. Unlike the compose run in pr-e2e.yml this goes through the real chain: the edge, Traefik and
+# TLS, Authelia forward-auth, Flux's signature check and the network policies.
+#
+# The env runs in PBS_FAKE mode (the same sample data as the compose run), from its own preview tree in
+# hwinther/proxmox (clusters/production/apps/previews/pbs-browser-fake): it gets no PBS credentials,
+# no encryption keyfile and no egress to PBS, so the shared e2e user never reaches real backups. The
+# PR previews (clusters/production/apps/previews/pbs-browser) keep the real client.
+#
+# A failure opens (or comments on) an issue labelled `nightly-preview`; the next green scheduled run
+# closes it. The steps live in reusable-workflows' nightly-preview-e2e.yml.
+#
+# Needs pr-e2e.yml's PROXMOX_GITOPS_* app, and the e2e user as repo secrets (E2E_USERNAME,
+# E2E_PASSWORD, E2E_OTP_SECRET): e2e/tests/auth.setup.ts signs it in through Authelia.
+
+on:
+  workflow_dispatch:
+  schedule:
+    # 03:00 UTC: after ClutterStock's (01:00), romslig's (01:30), test's (02:00) and skylens' (02:30).
+    - cron: "0 3 * * *"
+
+permissions: {}
+
+concurrency:
+  group: nightly-preview
+  cancel-in-progress: false
+
+jobs:
+  nightly:
+    permissions:
+      contents: read
+      packages: read
+      actions: read
+      pull-requests: write
+      issues: write
+    uses: hwinther/reusable-workflows/.github/workflows/nightly-preview-e2e.yml@8b08a959630464cef264fef5b518e1ce39d7d769 # v2.37.0
+    with:
+      app_name: pbs-browser
+      # The fake-data preview tree, not the PR previews' (which run the real client).
+      preview_base_path: clusters/production/apps/previews/pbs-browser-fake
+      # Anonymous in the app, and bypasses Authelia on pbs-browser-nightly only.
+      health_path: /healthz
+      client_id: ${{ vars.PROXMOX_GITOPS_CLIENT_ID }}
+      # The e2e user comes in through the secrets below, so the e2e job needs no environment.
+      environment: ""
+      coverage_paths_json: '["monocart-coverage"]'
+    secrets:
+      app_private_key: ${{ secrets.PROXMOX_GITOPS_APP_PRIVATE_KEY }}
+      e2e_username: ${{ secrets.E2E_USERNAME }}
+      e2e_password: ${{ secrets.E2E_PASSWORD }}
+      e2e_otp_secret: ${{ secrets.E2E_OTP_SECRET }}
