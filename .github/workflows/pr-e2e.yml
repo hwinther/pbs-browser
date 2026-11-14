@@ -52,7 +52,7 @@ jobs:
     steps:
       - name: Changed files
         id: changed
-        uses: hwinther/reusable-workflows/.github/actions/changed-files@710d85c434c301d739c8214fbe55e41f085bfaed # feat/changed-files-action (pre-release)
+        uses: hwinther/reusable-workflows/.github/actions/changed-files@05d82fa2339b2085bae78c0faa55083c86e5da2e # v2.38.0
         with:
           patterns: |
             ^backend/
