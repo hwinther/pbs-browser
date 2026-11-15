@@ -1,6 +1,13 @@
-import { describe, expect, test } from 'vitest'
+import { afterEach, describe, expect, test, vi } from 'vitest'
 import type { SnapshotInfo } from './api'
-import { buildDownloadUrl, formatVersion, groupSnapshotsByHost, isRestorableArchive, restoreArchiveName } from './api'
+import {
+  api,
+  buildDownloadUrl,
+  formatVersion,
+  groupSnapshotsByHost,
+  isRestorableArchive,
+  restoreArchiveName,
+} from './api'
 
 describe('formatVersion', () => {
   test('adds the short commit when there is one', () => {
@@ -59,5 +66,34 @@ describe('groupSnapshotsByHost', () => {
     expect(groups.map(([h]) => h)).toEqual(['host/grafana', 'host/node-red'])
     // grafana's two snapshots, newest first
     expect(groups[0]?.[1].map((s) => s.time)).toEqual(['2026-07-01T00:00:00Z', '2026-06-29T00:00:00Z'])
+  })
+})
+
+describe('api', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  test('asks for the catalog with both parameters encoded', async () => {
+    const fetchMock = vi.fn(() => Promise.resolve(Response.json({ name: '/' })))
+    vi.stubGlobal('fetch', fetchMock)
+
+    await expect(api.catalog('host/a b/2026', 'root.pxar')).resolves.toEqual({ name: '/' })
+    expect(fetchMock).toHaveBeenCalledWith('/api/catalog?snapshot=host%2Fa+b%2F2026&archive=root.pxar')
+  })
+
+  test('an error without a readable body is just the status', async () => {
+    const body = {
+      ok: false,
+      status: 503,
+      statusText: 'Service Unavailable',
+      text: () => Promise.reject(new Error('x')),
+    }
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => Promise.resolve(body)),
+    )
+
+    await expect(api.snapshots()).rejects.toThrow(/^503 Service Unavailable$/)
   })
 })
