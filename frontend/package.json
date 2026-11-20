@@ -32,9 +32,9 @@
     "@wshno/eslint-config": "0.2.0",
     "@wshno/prettier-config": "0.1.1",
     "@wshno/tsconfig": "0.1.1",
-    "eslint": "10.14.0",
+    "eslint": "10.15.0",
     "jsdom": "31.0.0",
-    "prettier": "3.9.10",
+    "prettier": "3.10.1",
     "typescript": "6.0.3",
     "vite": "8.3.5",
     "vitest": "5.1.0"
