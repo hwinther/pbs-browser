@@ -34,7 +34,7 @@ RUN set -eux; \
     rm -rf /var/lib/apt/lists/*
 
 # 3) Publish the API, with the SPA baked into wwwroot
-FROM mcr.microsoft.com/dotnet/sdk:10.0 AS backend
+FROM mcr.microsoft.com/dotnet/sdk:11.0 AS backend
 # Passed by the reusable docker-container workflow (GitVersion version + commit); served by
 # /api/version and shown in the UI footer.
 ARG APP_VERSION=0.0.0-local
