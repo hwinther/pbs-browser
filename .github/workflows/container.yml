@@ -30,7 +30,7 @@ jobs:
       actions: write
       security-events: write
       pull-requests: write
-    uses: hwinther/reusable-workflows/.github/workflows/docker-container.yml@6b6810e17143f38ac9dc0f84d504e7ff08b1d2bf # v2.26.0
+    uses: hwinther/reusable-workflows/.github/workflows/docker-container.yml@3d2710f9d075c767c77d3e7fe78af4fbb298e10b # v2.26.2
     with:
       container_registry: ghcr.io
       container_image_name_postfix: app
